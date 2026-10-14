@@ -1,0 +1,618 @@
+<title>軒瑀的國語闖關</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400..900&family=Noto+Sans+TC:wght@400..700&display=swap">
+<style>
+/* Layout: a sticky-note board. Home shows five gate notes; each gate plays as one centered question card at a time. */
+:root{
+  --bg:#e9eff6; --card:#ffffff; --fg:#1b2735; --muted:#566678; --line:#c9d5e2;
+  --accent:#2c5fd6; --accent-fg:#ffffff; --sel-bg:#e6edff;
+  --good:#17703d; --good-bg:#dcf4e6; --bad:#b4311a; --bad-bg:#fde5df;
+  --n-yellow:#ffe27a; --n-pink:#ffc3d3; --n-mint:#b8ecd1; --n-blue:#bdd9ff; --n-orange:#ffd4a6;
+  --note-ink:#2a2412; --note-btn-fg:#fff9e0;
+  --f-display:'Chiron GoRound TC','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  --f-body:'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101822; --card:#1a2533; --fg:#e8eef5; --muted:#9db0c4; --line:#2e3d50;
+    --accent:#7aa2ff; --accent-fg:#0b1220; --sel-bg:#22345a;
+    --good:#5fd68f; --good-bg:#15372a; --bad:#ff8f78; --bad-bg:#40211b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101822; --card:#1a2533; --fg:#e8eef5; --muted:#9db0c4; --line:#2e3d50;
+  --accent:#7aa2ff; --accent-fg:#0b1220; --sel-bg:#22345a;
+  --good:#5fd68f; --good-bg:#15372a; --bad:#ff8f78; --bad-bg:#40211b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--f-body); font-size:18px; line-height:1.6;
+  padding-block:20px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+#app{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:20px}
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0; line-height:1.25}
+p{margin:0}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible,summary:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+
+/* hero */
+.hero{display:flex; flex-direction:column; gap:12px; padding-top:8px}
+.hero h1{font-size:clamp(32px,8vw,52px); font-weight:900; letter-spacing:.02em}
+.hero .sub{color:var(--muted); font-size:18px}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{padding:4px 12px; border-radius:999px; background:var(--c); color:var(--note-ink); font-weight:500; font-size:16px}
+.parent{font-size:16px; color:var(--muted); border-top:1px dashed var(--line); padding-top:14px}
+
+/* gate notes */
+.board{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:18px}
+.note{
+  background:var(--c); color:var(--note-ink); padding:18px 18px 16px; display:flex; flex-direction:column; gap:8px; min-width:0;
+  border-radius:3px 3px 3px 18px; box-shadow:0 8px 14px -8px rgba(0,0,0,.45);
+  transform:rotate(var(--r,0deg)); transition:transform .15s;
+}
+.note:nth-child(odd){--r:-.9deg} .note:nth-child(even){--r:.7deg}
+.note:hover{transform:rotate(0)}
+.note .no{font-size:15px; font-weight:700; letter-spacing:.12em}
+.note h2{font-size:24px; font-weight:800}
+.note .meta{font-size:16px}
+.note .score{font-family:var(--f-display); font-weight:800; font-size:20px; font-variant-numeric:tabular-nums}
+.stars{letter-spacing:.15em; font-size:20px}
+
+/* buttons */
+.btn{
+  background:var(--accent); color:var(--accent-fg); border:0; border-radius:14px; padding:12px 22px; font-weight:700; font-size:19px; min-height:52px;
+}
+.btn.ghost{background:transparent; color:var(--fg); border:2px solid var(--line)}
+.btn.small{min-height:42px; padding:6px 14px; font-size:16px}
+.note .btn{background:var(--note-ink); color:var(--note-btn-fg); margin-top:auto}
+.btn:disabled{opacity:.45; cursor:default}
+.row{display:flex; flex-wrap:wrap; gap:12px}
+
+/* play screen */
+.top{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.top .mid{font-weight:700; color:var(--muted)}
+.top .tot{font-family:var(--f-display); font-weight:800; font-variant-numeric:tabular-nums}
+.bar{height:10px; background:var(--line); border-radius:99px; overflow:hidden}
+.bar i{display:block; height:100%; background:var(--accent); border-radius:99px; transition:width .25s}
+.qcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:22px; display:flex; flex-direction:column; gap:18px; min-width:0}
+.tag{align-self:flex-start; background:var(--c); color:var(--note-ink); font-weight:700; font-size:15px; letter-spacing:.06em; padding:3px 12px; border-radius:3px 3px 3px 10px}
+.q{font-family:var(--f-display); font-size:clamp(21px,4.6vw,26px); font-weight:700; line-height:1.5}
+.sub{color:var(--muted); font-size:16px}
+.opts{display:flex; flex-direction:column; gap:12px}
+.opt{
+  text-align:left; background:var(--card); border:2px solid var(--line); border-radius:14px; padding:12px 16px; min-height:56px; font-size:19px; line-height:1.5; width:100%;
+  display:flex; align-items:center; gap:10px; min-width:0; overflow-wrap:anywhere;
+}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.sel{border-color:var(--accent); background:var(--sel-bg)}
+.opt.right{border-color:var(--good); background:var(--good-bg); color:var(--fg)}
+.opt.wrong{border-color:var(--bad); background:var(--bad-bg); color:var(--fg)}
+.opt:disabled{cursor:default}
+.opt:disabled:not(.right):not(.wrong):not(.sel){opacity:.55}
+@media (prefers-reduced-motion: no-preference){ .opt.wrong,.mrow.wrong{animation:shake .3s} }
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.fb{border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:4px}
+.fb.good{background:var(--good-bg); color:var(--good)}
+.fb.bad{background:var(--bad-bg); color:var(--bad)}
+.fb strong{font-family:var(--f-display); font-size:20px}
+.fb p{color:var(--fg); font-size:17px}
+.foot{display:flex; justify-content:flex-end}
+
+/* ordering */
+.slots{display:flex; flex-direction:column; gap:10px}
+.slot{display:flex; gap:10px; align-items:center; border:2px dashed var(--line); border-radius:14px; padding:8px 12px; min-height:56px; background:transparent; text-align:left; width:100%; font-size:19px}
+.slot.filled{border-style:solid; border-color:var(--accent); background:var(--sel-bg)}
+.slot.right{border-color:var(--good); background:var(--good-bg)}
+.slot.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.slot b{flex:none; width:32px; height:32px; border-radius:50%; background:var(--accent); color:var(--accent-fg); display:grid; place-items:center; font-size:16px}
+.slot span{min-width:0; overflow-wrap:anywhere}
+.slot em{font-style:normal; color:var(--muted); font-size:16px}
+.pool{display:flex; flex-wrap:wrap; gap:10px}
+.pool .opt{width:auto; flex:1 1 auto}
+
+/* matching */
+.mrow{display:flex; flex-direction:column; gap:6px; text-align:left; width:100%; border:2px solid var(--line); border-radius:14px; padding:10px 14px; background:var(--card); font-size:18px; min-width:0}
+.mrow.active{border-color:var(--accent); box-shadow:0 0 0 3px var(--sel-bg)}
+.mrow.right{border-color:var(--good); background:var(--good-bg)}
+.mrow.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.mrow .to{font-family:var(--f-display); font-weight:700; color:var(--accent); font-size:18px; overflow-wrap:anywhere}
+.mrow.right .to{color:var(--good)}
+.mrow .to.empty{color:var(--muted); font-weight:400; font-size:16px}
+.rows{display:flex; flex-direction:column; gap:10px}
+
+/* speaking */
+.say{display:flex; flex-direction:column; gap:14px; align-items:flex-start}
+.timer{font-family:var(--f-display); font-size:64px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1}
+.adult{border:1px dashed var(--line); border-radius:12px; padding:8px 14px; font-size:16px; color:var(--muted); width:100%}
+.adult summary{cursor:pointer; font-weight:700}
+.adult p{margin-top:6px; color:var(--fg)}
+.rate{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr)); gap:10px; width:100%}
+
+/* result */
+.panel{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:24px; display:flex; flex-direction:column; gap:16px}
+.big{font-family:var(--f-display); font-weight:900; font-size:clamp(48px,14vw,84px); line-height:1; font-variant-numeric:tabular-nums}
+.big small{font-size:.36em; font-weight:700; color:var(--muted)}
+.tier{font-family:var(--f-display); font-size:26px; font-weight:800}
+.table{display:flex; flex-direction:column; gap:8px}
+.tr{display:flex; justify-content:space-between; gap:12px; border-bottom:1px dashed var(--line); padding-bottom:6px; font-variant-numeric:tabular-nums}
+.rev{display:flex; flex-direction:column; gap:12px}
+.rev li{list-style:none; background:var(--bg); border-radius:12px; padding:10px 14px; font-size:16px}
+.rev ul{margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
+.rev b{font-family:var(--f-display)}
+</style>
+
+<div id="app"></div>
+
+<script>
+(function(){
+'use strict';
+var TITLES=['時間是什麼','妙用便利貼','提早五分鐘','水滾了','為梨花撐傘'];
+var DECOYS=['時間在哪裡','妙用橡皮擦','提早十分鐘','水開了','為梨花撐雨','時間是誰','神奇便利貼'];
+var LESSON=['第一課','第二課','第三課','第四課','第五課'];
+var NUM=['一','二','三','四','五'];
+var GATES=[
+ {id:1,name:'五課基本題',sub:'配對、課名記憶',c:'--n-yellow'},
+ {id:2,name:'理解題',sub:'時間、便利貼、準時、水滾了、梨花',c:'--n-pink'},
+ {id:3,name:'為什麼大挑戰',sub:'不能只回答一兩個字',c:'--n-mint'},
+ {id:4,name:'句子偵探',sub:'改句子、擴寫、造句、排順序',c:'--n-blue'},
+ {id:5,name:'Boss 關',sub:'綜合題，最後一搏',c:'--n-orange'}
+];
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function sample(a,n){return shuffle(a).slice(0,n)}
+function fmt(t){return '〈'+t+'〉'}
+
+/* ---------- questions ---------- */
+var Q=[];
+Q.push({id:'q1',g:1,type:'match',pts:10,no:'1～5',label:'配對題',
+ prompt:'把課名和最適合的內容連起來。先點一句話，再點課名。',
+ pairs:[
+  ['從題目就能看出和「提早做好準備」有關。',fmt(TITLES[2])],
+  ['利用生活中的小工具幫助自己。',fmt(TITLES[1])],
+  ['從生活中的變化感受看不見的事物。',fmt(TITLES[0])],
+  ['題目出現「梨花」這種植物。',fmt(TITLES[4])],
+  ['題目描述水加熱後可能出現的現象。',fmt(TITLES[3])]
+ ]});
+for(var i=0;i<5;i++){
+ var others=TITLES.filter(function(_,k){return k!==i}).concat(DECOYS);
+ Q.push({id:'q'+(6+i),g:1,type:'mc',pts:2,no:String(6+i),label:'課名記憶',
+  q:LESSON[i]+'的課名是什麼？',ans:fmt(TITLES[i]),
+  opts:shuffle([TITLES[i]].concat(sample(others,3))).map(fmt),
+  why:LESSON[i]+'是'+fmt(TITLES[i])+'。',hint:'想一想課本的目錄。'});
+}
+Q.push({id:'q11',g:2,type:'multi',pts:6,no:'11',label:fmt(TITLES[0]),
+ q:'時間看不到也摸不到。下面哪些事情可以讓我們發現「時間過去了」？（可以選很多個）',
+ opts:shuffle(['天空從亮變暗了','小樹苗長高了','時鐘的指針轉動了','桌上的杯子一直放著，什麼都沒變','牆上的照片一直貼著，完全沒變']),
+ ans:['天空從亮變暗了','小樹苗長高了','時鐘的指針轉動了'],
+ why:'天色、長高、指針，都是「變化」。看到變化，就能發現時間過去了。'});
+Q.push({id:'q12',g:2,type:'mc',pts:6,no:'12',label:fmt(TITLES[1]),
+ q:'你常常忘記明天要帶什麼東西去學校。怎麼用便利貼幫助自己最好？',
+ ans:'把要帶的東西寫在便利貼上，貼在書包或門口看得到的地方',
+ opts:shuffle(['把要帶的東西寫在便利貼上，貼在書包或門口看得到的地方','把便利貼摺成紙飛機','把便利貼貼在抽屜最裡面','寫完以後馬上丟進垃圾桶']),
+ why:'便利貼要貼在「看得到」的地方，才能提醒自己。',hint:'想一想，提醒要放在哪裡才看得到？'});
+Q.push({id:'q13a',g:2,type:'mc',pts:3,no:'13',label:fmt(TITLES[2]),
+ q:'小明每天 7:30 出門，剛好 8:00 到學校。今天路上突然塞車，他遲到了。以後他可以怎麼做？',
+ ans:'提早五分鐘（或更早）出門',
+ opts:shuffle(['提早五分鐘（或更早）出門','還是 7:30 出門，路上跑快一點','等到 8:00 才起床','不要去學校']),
+ why:'比平常早一點出門，就有時間應付塞車。',hint:'題目的名字就是答案的提示。'});
+Q.push({id:'q13b',g:2,type:'mc',pts:3,no:'13',label:fmt(TITLES[2])+'（為什麼？）',
+ q:'為什麼小明要這樣做比較好？',
+ ans:'路上可能遇到意外，多留一點時間才不會來不及',
+ opts:shuffle(['路上可能遇到意外，多留一點時間才不會來不及','因為早出門可以多睡一點','因為塞車的時候車子會變少','因為遲到一點都沒關係']),
+ why:'多留一點時間，就算遇到意外也來得及。'});
+Q.push({id:'q14',g:2,type:'speak',pts:6,no:'14',label:fmt(TITLES[3]),lookup:true,
+ prompt:'用自己的話說說〈水滾了〉：故事怎麼開始？發生了什麼事？最後的結果是什麼？',
+ tip:'要說到三段：開始、發生的事、最後結果。細節請對照課本。'});
+Q.push({id:'q15',g:2,type:'speak',pts:6,no:'15',label:fmt(TITLES[4]),lookup:true,
+ prompt:'為什麼課名叫做「為梨花撐傘」？不能只說「因為有人幫梨花撐傘」，要說「為什麼要這麼做」。',
+ tip:'要說出「為什麼這麼做」的原因，不能只重複課名。請對照課文確認原因。'});
+Q.push({id:'q16',g:3,type:'mc',pts:5,no:'16',label:'為什麼',
+ q:'「準時」和「提早」有什麼不同？',
+ ans:'準時是剛好在約定的時間到，提早是比約定的時間更早到',
+ opts:shuffle(['準時是剛好在約定的時間到，提早是比約定的時間更早到','準時是比約定的時間晚到，提早是剛好到','兩個意思完全一樣','準時是不去，提早是去']),
+ why:'準時＝剛剛好，提早＝比約定的時間更早。',hint:'一個是「剛好」，一個是「更早」。'});
+Q.push({id:'q17',g:3,type:'mc',pts:5,no:'17',label:'為什麼',
+ q:'便利貼只是一張小紙片，為什麼它可以幫助人解決問題？',
+ ans:'可以把要記的事寫下來，貼在看得到的地方提醒自己',
+ opts:shuffle(['可以把要記的事寫下來，貼在看得到的地方提醒自己','因為便利貼的顏色很漂亮，看了就不會忘','因為便利貼可以貼很久，所以不用做事','因為便利貼比別的紙更大張']),
+ why:'小紙片的功用在「寫下來」和「貼在看得到的地方」。'});
+Q.push({id:'q18',g:3,type:'speak',pts:5,no:'18',label:fmt(TITLES[3]),lookup:true,
+ prompt:'你覺得〈水滾了〉裡最有趣的一個地方是什麼？為什麼你覺得有趣？',
+ tip:'要選一個地方，還要說出為什麼有趣。沒有標準答案，但一定要有理由。'});
+Q.push({id:'q19',g:3,type:'speak',pts:5,no:'19',label:fmt(TITLES[4]),lookup:true,
+ prompt:'讀完〈為梨花撐傘〉，你覺得故事中的人物有什麼特點？請說：「我覺得他很＿＿，課文中的證據是＿＿。」',
+ tip:'要有「人物特質」加上「課文中的證據」兩部分。請對照課文確認證據。'});
+Q.push({id:'q20',g:4,type:'mc',pts:3,no:'20',label:'句子偵探',
+ q:'這句話有問題：「因為今天下雨，但是所以我帶了雨傘。」哪一句改對了？',
+ ans:'因為今天下雨，所以我帶了雨傘。',
+ opts:shuffle(['因為今天下雨，所以我帶了雨傘。','因為今天下雨，但是我帶了雨傘。','今天下雨，但是所以我帶了雨傘。','因為今天下雨，因為我帶了雨傘。']),
+ why:'「因為……，所以……」是一組，不需要再放「但是」。',hint:'「因為」後面常常接「所以」。'});
+Q.push({id:'q21',g:4,type:'mc',pts:3,no:'21',label:'句子偵探',
+ q:'這句話有問題：「媽媽一邊煮飯，所以一邊聽音樂。」哪一句改對了？',
+ ans:'媽媽一邊煮飯，一邊聽音樂。',
+ opts:shuffle(['媽媽一邊煮飯，一邊聽音樂。','媽媽一邊煮飯，所以聽音樂。','媽媽煮飯，所以一邊一邊聽音樂。','媽媽一邊煮飯，但是一邊聽音樂。']),
+ why:'「一邊……，一邊……」是同時做兩件事，中間不用「所以」。'});
+Q.push({id:'q22',g:4,type:'mc',pts:3,no:'22',label:'擴寫句子',
+ q:'要把「花開了。」寫得更清楚，要有「什麼時候＋哪裡＋花的樣子」。哪一句最好？',
+ ans:'春天的早晨，花園裡的粉紅色花朵開得好漂亮。',
+ opts:shuffle(['春天的早晨，花園裡的粉紅色花朵開得好漂亮。','花開了開了開了。','花園裡有花。','春天的早晨花開了。']),
+ why:'這句有時間（春天的早晨）、地方（花園裡）、花的樣子（粉紅色、好漂亮）。',hint:'三樣都要有，數數看。'});
+Q.push({id:'q23',g:4,type:'mc',pts:3,no:'23',label:'造句',
+ q:'哪一句把「到底」用對了？',
+ ans:'你到底想吃蘋果還是香蕉？',
+ opts:shuffle(['你到底想吃蘋果還是香蕉？','我到底學校去上課。','到底我今天很高興。','我們到底公園玩。']),
+ why:'「到底」可以用在追問的句子裡，例如「你到底想怎麼做？」。',hint:'想一想，什麼時候會說「到底」？'});
+Q.push({id:'q24',g:4,type:'order',pts:3,no:'24',label:'排列句子',
+ q:'把下面的事情，排成合理的順序。',
+ answer:['放學回到家。','把今天要做的事情寫在便利貼上。','我開始寫功課。','我完成所有功課。'],
+ why:'先回到家，寫便利貼，再開始寫，最後完成。'});
+Q.push({id:'q25',g:5,type:'mc',pts:3,no:'25',label:fmt(TITLES[2]),
+ q:'下面哪一個人最符合「提早五分鐘」的概念？',
+ ans:'上課前先把課本、鉛筆準備好',
+ opts:shuffle(['上課前一分鐘才開始找課本','遲到以後才跑進教室','上課前先把課本、鉛筆準備好','今天的事情全部留到明天']),
+ why:'事先準備好，就是「提早」的做法。'});
+Q.push({id:'q26',g:5,type:'match',pts:4,no:'26',label:fmt(TITLES[1]),
+ prompt:'小華有三個問題。幫他選三張便利貼，每個問題配一張。',
+ pairs:[
+  ['明天要考國語。','便利貼：今晚複習國語課文'],
+  ['明天要帶美勞用品。','便利貼：把美勞用品放進書包'],
+  ['數學作業還沒寫。','便利貼：先寫數學作業']
+ ]});
+Q.push({id:'q27',g:5,type:'mc',pts:4,no:'27',label:'比較題',
+ q:'〈妙用便利貼〉和〈提早五分鐘〉有什麼相似的地方？',
+ ans:'都是在教我們事先想好、做好準備，才不會忘記或來不及',
+ opts:shuffle(['都是在教我們事先想好、做好準備，才不會忘記或來不及','都是在介紹怎麼種梨花','都是在說明水怎麼煮開','都是在比賽誰跑得快']),
+ why:'兩課都和「事先準備」有關。'});
+Q.push({id:'q28',g:5,type:'speak',pts:4,no:'28',label:'超級 Boss',lookup:false,
+ prompt:'只能用一句話，告訴別人第 1～5 課你學到了什麼。請用「我學到……」開頭。',
+ tip:'沒有唯一的標準答案，但要說得出理由。可以請他再說一次為什麼。'});
+
+/* ---------- state ---------- */
+var app=document.getElementById('app');
+var KEY='guoyu15-v1', res={}, cur=null, timer=null;
+try{res=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){res={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(res))}catch(e){}}
+function gq(g){return Q.filter(function(q){return q.g===g})}
+function sum(list,f){return list.reduce(function(s,q){return s+f(q)},0)}
+function gMax(g){return sum(gq(g),function(q){return q.pts})}
+function gGot(g){return sum(gq(g),function(q){return res[q.id]?res[q.id].got:0})}
+function gDone(g){return gq(g).filter(function(q){return res[q.id]}).length}
+function total(){return sum(Q,function(q){return res[q.id]?res[q.id].got:0})}
+function clearTimer(){if(timer){clearInterval(timer);timer=null}}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function btn(txt,cls,fn){var b=el('button','btn '+(cls||''),txt);b.type='button';b.onclick=fn;return b}
+function gate(id){return GATES[id-1]}
+function cvar(g){return 'var('+gate(g).c+')'}
+function stars(p){return p>=.9?'★★★':p>=.6?'★★☆':'★☆☆'}
+function fb(kind,title,body){var d=el('div','fb '+kind);d.setAttribute('role','status');d.append(el('strong',null,title));if(body)d.append(el('p',null,body));return d}
+function half(p){return Math.ceil(p/2)}
+
+/* ---------- home ---------- */
+function home(){
+ clearTimer();cur=null;app.replaceChildren();
+ var hero=el('header','hero');
+ hero.append(el('h1',null,'軒瑀的國語闖關'));
+ hero.append(el('p','sub','第 1～5 課，一共 5 關，滿分 100 分。'));
+ var chips=el('div','chips');
+ TITLES.forEach(function(t,i){var c=el('span','chip',LESSON[i]+' '+fmt(t));c.style.setProperty('--c',cvar(i+1));chips.append(c)});
+ hero.append(chips);
+ app.append(hero);
+ var board=el('div','board');
+ GATES.forEach(function(g){
+  var n=gq(g.id).length,d=gDone(g.id),mx=gMax(g.id),got=gGot(g.id);
+  var note=el('div','note');note.style.setProperty('--c','var('+g.c+')');
+  note.append(el('p','no','第'+NUM[g.id-1]+'關'));
+  note.append(el('h2',null,g.name));
+  note.append(el('p','meta',g.sub));
+  var sc=el('p','score',got+' / '+mx+' 分');
+  note.append(sc);
+  if(d===n){note.append(el('p','stars',stars(got/mx)))}
+  else note.append(el('p','meta',d+' / '+n+' 題完成'));
+  note.append(btn(d===0?'開始':d===n?'再玩一次':'繼續','',function(){startGate(g.id)}));
+  board.append(note);
+ });
+ app.append(board);
+ var all=GATES.every(function(g){return gDone(g.id)===gq(g.id).length});
+ if(all||total()>0){
+  var r=el('div','row');
+  if(all)r.append(btn('看總成績','',final));
+  r.append(btn('全部重來','ghost small',function(){res={};save();home()}));
+  app.append(r);
+ }
+ app.append(el('p','parent','給大人：口說題請在旁邊聽，再按評分。有「找課文證據」的題目，會先讓他自己說，不會再給 30 秒翻課本，課本關上後再說一次。'));
+}
+
+function startGate(g){
+ var list=gq(g);
+ if(gDone(g)===list.length){list.forEach(function(q){delete res[q.id]});save()}
+ var i=0;while(i<list.length&&res[list[i].id])i++;
+ cur={g:g,list:list,i:i};play();
+}
+
+/* ---------- play ---------- */
+function play(){
+ clearTimer();
+ var q=cur.list[cur.i],n=cur.list.length;
+ app.replaceChildren();
+ var top=el('div','top');
+ top.append(btn('← 地圖','ghost small',home));
+ top.append(el('span','mid','第'+NUM[cur.g-1]+'關 · 第 '+(cur.i+1)+' / '+n+' 題'));
+ var tot=el('span','tot','總分 '+total());tot.id='tot';top.append(tot);
+ app.append(top);
+ var bar=el('div','bar');var fill=el('i');fill.style.width=(cur.i/n*100)+'%';bar.append(fill);app.append(bar);
+ var card=el('section','qcard');
+ var tag=el('span','tag','第 '+q.no+' 題 · '+q.label);tag.style.setProperty('--c',cvar(q.g));
+ card.append(tag);
+ var body=el('div');body.style.cssText='display:flex;flex-direction:column;gap:16px;min-width:0';
+ var foot=el('div','foot');
+ card.append(body,foot);
+ app.append(card);
+ function done(got,missed){
+  res[q.id]={got:got,max:q.pts,missed:!!missed};save();
+  document.getElementById('tot').textContent='總分 '+total();
+  fill.style.width=((cur.i+1)/n*100)+'%';
+  clearTimer();
+  var last=cur.i>=n-1;
+  foot.append(btn(last?'完成這一關':'下一題','',function(){if(last)gateEnd(cur.g);else{cur.i++;play()}}));
+  foot.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }
+ R[q.type](q,body,done);
+ window.scrollTo(0,0);
+}
+
+var R={};
+
+R.mc=function(q,body,done){
+ var tries=0,locked=false;
+ body.append(el('p','q',q.q));
+ var list=el('div','opts');var msg=el('div');
+ q.opts.forEach(function(t){
+  var b=el('button','opt',t);b.type='button';
+  b.onclick=function(){
+   if(locked||b.disabled)return;
+   if(t===q.ans){
+    locked=true;b.classList.add('right');
+    Array.prototype.forEach.call(list.children,function(x){x.disabled=true});
+    msg.replaceChildren(fb('good',tries===0?'答對了！':'答對了，第二次就找到了！',q.why));
+    done(tries===0?q.pts:half(q.pts),tries>0);
+   }else{
+    tries++;b.classList.add('wrong');b.disabled=true;
+    if(tries>=2){
+     locked=true;
+     Array.prototype.forEach.call(list.children,function(x){x.disabled=true;if(x.textContent===q.ans)x.classList.add('right')});
+     msg.replaceChildren(fb('bad','正確答案在這裡',q.why));
+     done(0,true);
+    }else msg.replaceChildren(fb('bad','再想想看，還有一次機會。',q.hint||''));
+   }
+  };
+  list.append(b);
+ });
+ body.append(list,msg);
+};
+
+R.multi=function(q,body,done){
+ var tries=0,locked=false;
+ body.append(el('p','q',q.q));
+ var list=el('div','opts');var msg=el('div');
+ q.opts.forEach(function(t){
+  var b=el('button','opt',t);b.type='button';b.setAttribute('aria-pressed','false');
+  b.onclick=function(){if(locked)return;var on=b.classList.toggle('sel');b.setAttribute('aria-pressed',on)};
+  list.append(b);
+ });
+ var check=btn('檢查答案','',function(){
+  if(locked)return;
+  var chosen=[].filter.call(list.children,function(b){return b.classList.contains('sel')}).map(function(b){return b.textContent});
+  if(!chosen.length){msg.replaceChildren(fb('bad','先選選看','點一點你覺得對的句子。'));return}
+  var ok=chosen.length===q.ans.length&&q.ans.every(function(a){return chosen.indexOf(a)>-1});
+  function lockAll(){locked=true;check.disabled=true;[].forEach.call(list.children,function(b){b.disabled=true})}
+  if(ok){
+   [].forEach.call(list.children,function(b){if(b.classList.contains('sel')){b.classList.remove('sel');b.classList.add('right')}});
+   lockAll();msg.replaceChildren(fb('good',tries===0?'全部答對了！':'答對了，第二次就找到了！',q.why));
+   done(tries===0?q.pts:half(q.pts),tries>0);
+  }else{
+   tries++;
+   if(tries>=2){
+    [].forEach.call(list.children,function(b){
+     var isAns=q.ans.indexOf(b.textContent)>-1;
+     b.classList.remove('sel');
+     if(isAns)b.classList.add('right');else if(chosen.indexOf(b.textContent)>-1)b.classList.add('wrong');
+    });
+    lockAll();msg.replaceChildren(fb('bad','正確答案是綠色的',q.why));done(0,true);
+   }else msg.replaceChildren(fb('bad','還差一點，再檢查一次。','有的選錯了，或是少選了。'));
+  }
+ });
+ body.append(list,check,msg);
+};
+
+R.order=function(q,body,done){
+ var n=q.answer.length,picked=[],tries=0,locked=false;
+ body.append(el('p','q',q.q));
+ body.append(el('p','sub','從下面依序點句子，排進格子裡。點格子可以拿掉。'));
+ var slots=el('div','slots'),pool=el('div','pool'),msg=el('div');
+ var pooled=shuffle(q.answer);
+ var check=btn('檢查順序','',function(){
+  if(locked)return;
+  var ok=picked.every(function(t,i){return t===q.answer[i]});
+  if(ok){locked=true;check.disabled=true;draw('right');msg.replaceChildren(fb('good',tries===0?'順序完全正確！':'答對了，第二次就排好了！',q.why));done(tries===0?q.pts:half(q.pts),tries>0)}
+  else{tries++;
+   if(tries>=2){locked=true;check.disabled=true;picked=q.answer.slice();draw('right');msg.replaceChildren(fb('bad','正確順序在這裡',q.why));done(0,true)}
+   else{draw('wrong');msg.replaceChildren(fb('bad','順序還不對，再試一次。','點一下已經排好的句子，可以拿掉重排。'))}
+  }
+ });
+ function draw(state){
+  slots.replaceChildren();pool.replaceChildren();
+  for(var i=0;i<n;i++){
+   (function(i){
+    var s=el('button','slot'+(picked[i]?' filled':''));s.type='button';
+    s.append(el('b',null,String(i+1)));
+    if(picked[i]){s.append(el('span',null,picked[i]));if(state)s.classList.add(state)}else s.append(el('em',null,'空格'));
+    s.onclick=function(){if(locked||!picked[i])return;picked.splice(i,1);msg.replaceChildren();draw()};
+    slots.append(s);
+   })(i);
+  }
+  pooled.forEach(function(t){
+   if(picked.indexOf(t)>-1)return;
+   var b=el('button','opt',t);b.type='button';
+   b.onclick=function(){if(locked)return;picked.push(t);msg.replaceChildren();draw()};
+   pool.append(b);
+  });
+  check.disabled=locked||picked.length<n;
+ }
+ body.append(slots,pool,check,msg);draw();
+};
+
+R.match=function(q,body,done){
+ var n=q.pairs.length,tries=0,locked=false,c1=0,c2=0,active=0;
+ var rows=q.pairs.map(function(p){return {p:p[0],ans:p[1],val:null,lock:false}});
+ var chips=shuffle(q.pairs.map(function(p){return p[1]}));
+ body.append(el('p','q',q.prompt));
+ var rowsBox=el('div','rows'),pool=el('div','pool'),msg=el('div');
+ var check=btn('檢查答案','',function(){
+  if(locked)return;
+  tries++;var wrongCount=0;
+  rows.forEach(function(r){
+   if(r.lock)return;
+   if(r.val===r.ans){r.lock=true;if(tries===1)c1++;else c2++}
+   else{wrongCount++;r.bad=true}
+  });
+  var score=Math.round(q.pts*(c1+0.5*c2)/n);
+  if(wrongCount===0){locked=true;check.disabled=true;draw();msg.replaceChildren(fb('good',tries===1?'全部配對成功！':'全部對了！',''));done(score,tries>1)}
+  else if(tries>=2){locked=true;check.disabled=true;rows.forEach(function(r){if(!r.lock){r.val=r.ans;r.lock=true}});draw();msg.replaceChildren(fb('bad','正確配對在這裡',''));done(score,true)}
+  else{
+   msg.replaceChildren(fb('bad',wrongCount+' 個不對，已經拿掉了，再試一次。','對的會留在原位。'));
+   draw(true);
+   rows.forEach(function(r){if(!r.lock)r.val=null;r.bad=false});
+   active=firstOpen();
+   setTimeout(function(){if(!locked)draw()},700);
+  }
+ });
+ function firstOpen(){for(var i=0;i<n;i++)if(!rows[i].lock&&!rows[i].val)return i;for(var j=0;j<n;j++)if(!rows[j].lock)return j;return 0}
+ function draw(flash){
+  rowsBox.replaceChildren();pool.replaceChildren();
+  rows.forEach(function(r,i){
+   var b=el('button','mrow'+(r.lock?' right':'')+(flash&&r.bad?' wrong':'')+(!r.lock&&i===active&&!flash?' active':''));b.type='button';
+   b.append(el('span',null,r.p));
+   b.append(el('span','to'+(r.val?'':' empty'),r.val?'→ '+r.val:'點這裡，再點下面的答案'));
+   b.onclick=function(){if(locked||r.lock)return;if(i===active&&r.val){r.val=null}else active=i;draw()};
+   rowsBox.append(b);
+  });
+  chips.forEach(function(t){
+   if(rows.some(function(r){return r.val===t}))return;
+   var b=el('button','opt',t);b.type='button';
+   b.onclick=function(){
+    if(locked||rows[active].lock)return;
+    rows[active].val=t;active=firstOpen();draw();
+   };
+   pool.append(b);
+  });
+  check.disabled=locked||rows.some(function(r){return !r.val});
+ }
+ body.append(rowsBox,pool,check,msg);draw();
+};
+
+R.speak=function(q,body,done){
+ var used=false;
+ body.append(el('p','q',q.prompt));
+ var stage=el('div','say');body.append(stage);
+ function row(items){var r=el('div','row');items.forEach(function(it){r.append(btn(it[0],it[2]||'',it[1]))});return r}
+ function say(){
+  clearTimer();stage.replaceChildren();
+  stage.append(el('p','sub','先用說的，不用寫。說完再按下面的按鈕。'));
+  var its=[['我說好了',rate]];
+  if(q.lookup)its.push(['我不確定，找課文證據',find,'ghost']);
+  stage.append(row(its));
+ }
+ function find(){
+  used=true;stage.replaceChildren();
+  var left=30;
+  stage.append(el('p','sub','翻開課本，找到可以回答的句子。時間到就把課本關起來。'));
+  var t=el('div','timer','30');t.setAttribute('aria-live','off');stage.append(t);
+  stage.append(btn('找到了，關上課本','',retry));
+  timer=setInterval(function(){left--;t.textContent=String(Math.max(left,0));if(left<=0){retry()}},1000);
+ }
+ function retry(){
+  clearTimer();stage.replaceChildren();
+  stage.append(el('p','q','課本關起來。再說一次同一題。'));
+  stage.append(row([['我說好了',rate]]));
+ }
+ function rate(){
+  clearTimer();stage.replaceChildren();
+  stage.append(el('p','sub','請大人聽一聽，幫他按一個。'));
+  var ad=el('details','adult');ad.append(el('summary',null,'給大人的評分提示'));ad.append(el('p',null,q.tip));
+  stage.append(ad);
+  var r=el('div','rate');
+  [['說得完整',q.pts,'good'],['說到一半',half(q.pts),'half'],['還要練習',0,'no']].forEach(function(o){
+   r.append(btn(o[0],'ghost',function(){
+    r.querySelectorAll('button').forEach(function(b){b.disabled=true});
+    var ttl=o[1]===q.pts?'說得很好！':o[1]>0?'不錯，再加強一點點。':'沒關係，練習後再來。';
+    stage.append(fb(o[1]>0?'good':'bad',ttl,used?'有找課文證據，很棒。':''));
+    done(o[1],o[1]<q.pts);
+   }));
+  });
+  stage.append(r);
+ }
+ say();
+};
+
+/* ---------- end screens ---------- */
+function gateEnd(g){
+ clearTimer();app.replaceChildren();
+ var mx=gMax(g),got=gGot(g);
+ var p=el('section','panel');
+ var tag=el('span','tag','第'+NUM[g-1]+'關完成 · '+gate(g).name);tag.style.setProperty('--c',cvar(g));tag.style.alignSelf='flex-start';
+ p.append(tag);
+ p.append(el('p','stars',stars(got/mx)));
+ var b=el('p','big',String(got));b.append(el('small',null,' / '+mx+' 分'));p.append(b);
+ var miss=gq(g).filter(function(q){return res[q.id]&&res[q.id].missed}).length;
+ p.append(el('p',null,miss===0?'這一關全部一次就答對，太厲害了！':'有 '+miss+' 題需要再看一次，最後的成績頁會列出來。'));
+ var r=el('div','row');
+ if(g<5)r.append(btn('前往第'+NUM[g]+'關','',function(){startGate(g+1)}));
+ else r.append(btn('看總成績','',final));
+ r.append(btn('回地圖','ghost',home));
+ p.append(r);app.append(p);window.scrollTo(0,0);
+}
+
+function answerText(q){
+ if(q.type==='mc')return q.ans;
+ if(q.type==='multi')return q.ans.join('、');
+ if(q.type==='order')return q.answer.join(' → ');
+ if(q.type==='match')return q.pairs.map(function(p){return p[0]+' → '+p[1]}).join('；');
+ return q.tip;
+}
+function final(){
+ clearTimer();app.replaceChildren();
+ var t=total();
+ var tier=t>=90?'五課大師':t>=75?'便利貼高手':t>=60?'提早五分鐘小隊':'再加把火，繼續練習';
+ var p=el('section','panel');
+ p.append(el('h1',null,'軒瑀的總成績'));
+ var b=el('p','big',String(t));b.append(el('small',null,' / 100 分'));p.append(b);
+ p.append(el('p','tier',tier));
+ var tb=el('div','table');
+ GATES.forEach(function(g){var r=el('div','tr');r.append(el('span',null,'第'+NUM[g.id-1]+'關 '+g.name));r.append(el('span',null,gGot(g.id)+' / '+gMax(g.id)));tb.append(r)});
+ p.append(tb);
+ var missed=Q.filter(function(q){return res[q.id]&&res[q.id].missed});
+ if(missed.length){
+  var rv=el('div','rev');rv.append(el('h2',null,'需要再看一次的題目'));
+  var ul=el('ul');
+  missed.forEach(function(q){
+   var li=el('li');li.append(el('b',null,'第 '+q.no+' 題 · '+q.label));
+   li.append(el('div',null,(q.q||q.prompt)));
+   li.append(el('div',null,(q.type==='speak'?'重點：':'答案：')+answerText(q)));
+   ul.append(li);
+  });
+  rv.append(ul);p.append(rv);
+ }else p.append(el('p',null,'沒有需要重看的題目，全部都掌握了！'));
+ var r=el('div','row');
+ r.append(btn('回地圖','',home));
+ r.append(btn('全部重來','ghost',function(){res={};save();home()}));
+ p.append(r);app.append(p);window.scrollTo(0,0);
+}
+
+home();
+})();
+</script>
