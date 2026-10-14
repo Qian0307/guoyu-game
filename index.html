@@ -155,13 +155,18 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--accent); outl
 var TITLES=['時間是什麼','妙用便利貼','提早五分鐘','水滾了','為梨花撐傘'];
 var DECOYS=['時間在哪裡','妙用橡皮擦','提早十分鐘','水開了','為梨花撐雨','時間是誰','神奇便利貼'];
 var LESSON=['第一課','第二課','第三課','第四課','第五課'];
-var NUM=['一','二','三','四','五'];
+var NUM=['一','二','三','四','五','六','七','八','九','十'];
 var GATES=[
  {id:1,name:'五課基本題',sub:'配對、課名記憶',c:'--n-yellow'},
  {id:2,name:'理解題',sub:'時間、便利貼、準時、水滾了、梨花',c:'--n-pink'},
  {id:3,name:'為什麼大挑戰',sub:'不能只回答一兩個字',c:'--n-mint'},
  {id:4,name:'句子偵探',sub:'改句子、擴寫、造句、排順序',c:'--n-blue'},
- {id:5,name:'Boss 關',sub:'綜合題，最後一搏',c:'--n-orange'}
+ {id:5,name:'Boss 關',sub:'綜合題，最後一搏',c:'--n-orange'},
+ {id:6,name:'加碼：〈時間是什麼〉',sub:'課文細節題，不計入 100 分',c:'--n-mint'},
+ {id:7,name:'加碼：〈妙用便利貼〉',sub:'課文細節題，不計入 100 分',c:'--n-pink'},
+ {id:8,name:'加碼：〈提早五分鐘〉',sub:'課文細節題，不計入 100 分',c:'--n-blue'},
+ {id:9,name:'加碼：〈水滾了〉',sub:'課文細節題，不計入 100 分',c:'--n-orange'},
+ {id:10,name:'加碼：〈為梨花撐傘〉',sub:'課文細節題，不計入 100 分',c:'--n-yellow'}
 ];
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 function sample(a,n){return shuffle(a).slice(0,n)}
@@ -272,6 +277,197 @@ Q.push({id:'q28',g:5,type:'speak',pts:4,no:'28',label:'超級 Boss',lookup:false
  prompt:'只能用一句話，告訴別人第 1～5 課你學到了什麼。請用「我學到……」開頭。',
  tip:'沒有唯一的標準答案，但要說得出理由。可以請他再說一次為什麼。'});
 
+/* ---------- bonus gate: 〈時間是什麼〉 課文細節（依課本頁面核對） ---------- */
+var L1=fmt(TITLES[0]);
+Q.push({id:'qb1',g:6,type:'mc',pts:3,no:'加碼 1',label:L1,
+ q:'〈時間是什麼〉裡，「等待的人」說時間像什麼？',ans:'蝸牛',
+ opts:shuffle(['蝸牛','飛奔的斑馬','彈簧','流水']),
+ why:'蝸牛爬得很慢，等待的人覺得時間過得很慢。',hint:'想一想，哪一個動物走得慢吞吞？'});
+Q.push({id:'qb2',g:6,type:'mc',pts:3,no:'加碼 2',label:L1,
+ q:'〈時間是什麼〉裡，「忙碌的人」說時間像什麼？',ans:'飛奔的斑馬',
+ opts:shuffle(['飛奔的斑馬','慢吞吞的蝸牛','彈簧','流水']),
+ why:'斑馬跑得很快，忙碌的人覺得時間過得很快。',hint:'忙的時候，時間是過得快還是慢？'});
+Q.push({id:'qb3',g:6,type:'mc',pts:3,no:'加碼 3',label:L1,
+ q:'有人說時間像彈簧。快樂的時候和悲傷的時候，時間會怎麼樣？',ans:'快樂的時候縮短，悲傷的時候伸長',
+ opts:shuffle(['快樂的時候縮短，悲傷的時候伸長','快樂的時候伸長，悲傷的時候縮短','快樂和悲傷的時候都縮短','快樂和悲傷的時候都不會變']),
+ why:'彈簧可以縮短，也可以伸長。快樂時覺得時間很短，悲傷時覺得時間很長。',hint:'彈簧可以變短，也可以變長。'});
+Q.push({id:'qb4',g:6,type:'mc',pts:3,no:'加碼 4',label:L1,
+ q:'有人說時間像流水。他覺得時間是什麼樣子？',ans:'時間過去了，就不會再回來',
+ opts:shuffle(['時間過去了，就不會再回來','時間會一直待在原地','時間過去了，還會倒回來','時間每天都一樣快']),
+ why:'流走的水不會再回到原來的地方。'});
+Q.push({id:'qb5',g:6,type:'mc',pts:3,no:'加碼 5',label:L1,
+ q:'說了這麼多比喻以後，最後作者怎麼說？',ans:'還是不明白時間到底是什麼',
+ opts:shuffle(['還是不明白時間到底是什麼','已經完全明白時間是什麼','覺得時間一點都不重要','決定不再想時間的事']),
+ why:'課文最後回到題目，說自己還是不明白「時間到底是什麼」。',hint:'看看課文最後一段。'});
+Q.push({id:'qb6',g:6,type:'mc',pts:3,no:'加碼 6',label:L1+'（詞語）',
+ q:'「慢吞吞」是什麼意思？',ans:'動作很慢，一點也不快',
+ opts:shuffle(['動作很慢，一點也不快','動作很快，一下子就到','聲音很大，吵吵鬧鬧','顏色很深，不容易看']),
+ why:'「慢吞吞」是形容動作很慢。'});
+Q.push({id:'qb7',g:6,type:'match',pts:5,no:'加碼 7',label:L1,
+ prompt:'把「覺得時間怎麼樣的人」和他說的比喻連起來。先點一句話，再點答案。',
+ pairs:[
+  ['覺得時間過得好慢的人','蝸牛'],
+  ['覺得時間過得好快的人','飛奔的斑馬'],
+  ['覺得時間會隨心情變長變短的人','彈簧'],
+  ['覺得時間一去不回頭的人','流水']
+ ]});
+Q.push({id:'qb8',g:6,type:'speak',pts:5,no:'加碼 8',label:L1,lookup:false,
+ prompt:'你覺得時間像什麼？請說：「時間像……，因為……」，想一個課文裡沒有的比喻。',
+ tip:'要用「像」做比喻，還要說出理由。沒有標準答案，只要說得通，比喻和理由要對得上。'});
+
+/* ---------- bonus gate: 〈妙用便利貼〉 課文細節（依課本頁面核對） ---------- */
+var L2=fmt(TITLES[1]);
+Q.push({id:'qc1',g:7,type:'mc',pts:3,no:'加碼 1',label:L2,
+ q:'〈妙用便利貼〉裡的小真，一開始做事有什麼問題？',ans:'做事慢吞吞，常常忘東忘西',
+ opts:shuffle(['做事慢吞吞，常常忘東忘西','做事很快，從來不會忘記','很愛和別人吵架','不喜歡上學']),
+ why:'課文一開始說小真做事慢吞吞，也常常忘東忘西。',hint:'看看課文開頭。'});
+Q.push({id:'qc2',g:7,type:'mc',pts:3,no:'加碼 2',label:L2,
+ q:'誰告訴小真可以使用「便利貼」？',ans:'爸爸',
+ opts:shuffle(['爸爸','媽媽','老師','同學']),
+ why:'小真常常忘東忘西，於是爸爸教她用便利貼。',hint:'想一想課文的第一段。'});
+Q.push({id:'qc3',g:7,type:'mc',pts:3,no:'加碼 3',label:L2,
+ q:'爸爸說，便利貼可以怎麼用？',ans:'記下什麼時間要完成什麼事，貼在明顯的地方',
+ opts:shuffle(['記下什麼時間要完成什麼事，貼在明顯的地方','寫完以後馬上丟掉','貼在抽屜最裡面，不讓別人看到','只有考試的時候才用']),
+ why:'便利貼要寫清楚「什麼時間、做什麼事」，還要貼在看得到的地方，才能時時提醒自己。'});
+Q.push({id:'qc4',g:7,type:'mc',pts:3,no:'加碼 4',label:L2,
+ q:'隔天早上，全家人為什麼要在七點前出門？',ans:'因為媽媽早上要開會',
+ opts:shuffle(['因為媽媽早上要開會','因為全家人要去旅行','因為學校今天要考試','因為爸爸要去釣魚']),
+ why:'課文說媽媽隔天早上要開會，所以全家人要在七點前出門。',hint:'翻到第二段找原因。'});
+Q.push({id:'qc5',g:7,type:'multi',pts:4,no:'加碼 5',label:L2,
+ q:'為了準時出門，小真做了哪些事？（可以選很多個）',
+ opts:shuffle(['寫便利貼，貼在書桌前面','完成一件事就打個勾','睡覺前先設定好鬧鐘','整晚不睡覺，等到天亮','請別人幫她做完所有事']),
+ ans:['寫便利貼，貼在書桌前面','完成一件事就打個勾','睡覺前先設定好鬧鐘'],
+ why:'小真用便利貼列出要做的事，做完就打勾，還先設好鬧鐘，所以全家人果然準時出門。'});
+Q.push({id:'qc6',g:7,type:'mc',pts:3,no:'加碼 6',label:L2,
+ q:'小真常常使用便利貼以後，有什麼改變？',ans:'做事有次序，而且能按時完成',
+ opts:shuffle(['做事有次序，而且能按時完成','做事變得更慢','不想再用便利貼','什麼事都要靠別人提醒']),
+ why:'小真學會怎麼計畫和安排時間，做事有次序，也能按時完成。'});
+Q.push({id:'qc7',g:7,type:'mc',pts:3,no:'加碼 7',label:L2+'（詞語）',
+ q:'「貼在明顯的地方」，「明顯」是什麼意思？',ans:'很容易一眼就看到',
+ opts:shuffle(['很容易一眼就看到','很小很小，不容易發現','很貴很貴，不能亂碰','很遠很遠，走不到']),
+ why:'便利貼貼在「明顯」的地方，才能一眼就看到、時時提醒自己。'});
+Q.push({id:'qc8',g:7,type:'order',pts:4,no:'加碼 8',label:L2,
+ q:'把〈妙用便利貼〉的事情，依照課文發生的順序排好。',
+ answer:['小真做事慢吞吞，常常忘東忘西。','爸爸告訴小真可以使用便利貼。','小真寫便利貼，全家人準時在七點前出門。','小真更常使用便利貼，還會提醒家人。'],
+ why:'先有問題，接著爸爸教方法，小真試了有效，後來更常用，還幫忙提醒家人。'});
+Q.push({id:'qc9',g:7,type:'speak',pts:5,no:'加碼 9',label:L2,lookup:true,
+ prompt:'有一天晚上，爸爸下班回家，看見冰箱上有小真寫的便利貼，不由得笑了。你覺得爸爸為什麼笑？請用課文裡的句子當證據。',
+ tip:'要說出一個理由，還要指出課文哪裡可以證明。這題請對照課本核對，我只能從頁面看出大意。'});
+
+/* ---------- bonus gate: 〈提早五分鐘〉 課文細節（依課本頁面核對） ---------- */
+var L3=fmt(TITLES[2]);
+Q.push({id:'qd1',g:8,type:'mc',pts:3,no:'加碼 1',label:L3,
+ q:'〈提早五分鐘〉是誰寫給誰的？',ans:'爸爸寫給孩子的信',
+ opts:shuffle(['爸爸寫給孩子的信','老師寫給學生的通知','孩子寫給爸爸的日記','一則報紙新聞']),
+ why:'課文最後有爸爸的署名，內容是爸爸對孩子說的話。',hint:'看看課文最後的署名。'});
+Q.push({id:'qd2',g:8,type:'mc',pts:3,no:'加碼 2',label:L3,
+ q:'孩子早上常常大喊「來不及了」，主要是因為什麼？',ans:'做事匆忙慌張，東西沒有事先準備好',
+ opts:shuffle(['做事匆忙慌張，東西沒有事先準備好','睡得太多','不喜歡上學','爸爸不讓他出門']),
+ why:'孩子常常慌慌張張，找不到要帶的東西，才會來不及。'});
+Q.push({id:'qd3',g:8,type:'mc',pts:3,no:'加碼 3',label:L3,
+ q:'爸爸提醒孩子，睡覺前要先做什麼？',ans:'把明天要帶的書本和文具整理好',
+ opts:shuffle(['把明天要帶的書本和文具整理好','先看電視再睡','把功課留到早上寫','把鬧鐘關掉']),
+ why:'事先整理好，早上就不會手忙腳亂。',hint:'看看孩子大喊之後，爸爸提醒他的那一段。'});
+Q.push({id:'qd4',g:8,type:'mc',pts:3,no:'加碼 4',label:L3,
+ q:'爸爸提醒以後，孩子是怎麼回答的？',ans:'到時候再說，現在要去睡覺了',
+ opts:shuffle(['到時候再說，現在要去睡覺了','好，我現在就整理','爸爸，你幫我整理','我不要去上學']),
+ why:'孩子把事情都留到「到時候」，這就是問題的來源。'});
+Q.push({id:'qd5',g:8,type:'mc',pts:3,no:'加碼 5',label:L3,
+ q:'爸爸覺得孩子總是匆忙慌張，真正的原因是什麼？',ans:'事情不先計畫，總是喜歡「到時候再說」',
+ opts:shuffle(['事情不先計畫，總是喜歡「到時候再說」','東西太多拿不動','路太遠走不完','時鐘壞掉了']),
+ why:'爸爸發現問題出在孩子不先計畫，一直拖到最後。'});
+Q.push({id:'qd6',g:8,type:'mc',pts:3,no:'加碼 6',label:L3,
+ q:'爸爸自己做事喜歡怎麼做？',ans:'先計畫，再提早五分鐘準備好',
+ opts:shuffle(['先計畫，再提早五分鐘準備好','等到最後一刻再開始','全部交給別人做','忘記了再補救']),
+ why:'爸爸喜歡先計畫，還會比時間早五分鐘做好準備，所以不會匆忙。'});
+Q.push({id:'qd7',g:8,type:'mc',pts:3,no:'加碼 7',label:L3+'（詞語）',
+ q:'「匆忙」是什麼意思？',ans:'很急，沒有時間慢慢來',
+ opts:shuffle(['很急，沒有時間慢慢來','很安靜，一動也不動','很開心，一直笑','很生氣，大聲吵']),
+ why:'「匆忙」是形容事情急著做，沒有時間慢慢來。'});
+Q.push({id:'qd8',g:8,type:'speak',pts:5,no:'加碼 8',label:L3,lookup:false,
+ prompt:'如果你是信裡的孩子，讀完這封信，明天晚上睡覺前你會先做什麼？請說一個具體的方法。',
+ tip:'沒有標準答案，但方法要具體，例如先把什麼東西放在哪裡。最好能說出這個方法和信裡爸爸的做法有什麼關係。'});
+
+/* ---------- bonus gate: 〈水滾了〉 課文細節（依課本頁面核對） ---------- */
+var L4=fmt(TITLES[3]);
+Q.push({id:'qe1',g:9,type:'mc',pts:3,no:'加碼 1',label:L4,
+ q:'〈水滾了〉的故事發生在哪裡？',ans:'山腳下的一間小食堂',
+ opts:shuffle(['山腳下的一間小食堂','海邊的小漁村','大城市的百貨公司','學校的操場']),
+ why:'課文一開始就介紹了安靜的山腳下，有一間小小的食堂。',hint:'看看第一段。'});
+Q.push({id:'qe2',g:9,type:'mc',pts:3,no:'加碼 2',label:L4,
+ q:'故事裡的康康是什麼人？',ans:'食堂裡年輕的徒弟',
+ opts:shuffle(['食堂裡年輕的徒弟','食堂的老師傅','來吃飯的客人','賣水果的小販']),
+ why:'康康是跟著師傅學習的年輕徒弟。'});
+Q.push({id:'qe3',g:9,type:'mc',pts:3,no:'加碼 3',label:L4,
+ q:'鍋裡的水滾了，康康一開始怎麼做？',ans:'把鍋裡的水舀起來，再倒回去',
+ opts:shuffle(['把鍋裡的水舀起來，再倒回去','把鍋子端走','把火開得更大','把水全部倒掉']),
+ why:'康康想讓水不要再滾，就一直把水舀起來又倒回去。',hint:'這就是師傅說的「揚湯止沸」。'});
+Q.push({id:'qe4',g:9,type:'mc',pts:3,no:'加碼 4',label:L4,
+ q:'師傅說，康康這樣做有什麼問題？',ans:'這樣做沒辦法讓水不再沸騰',
+ opts:shuffle(['這樣做沒辦法讓水不再沸騰','這樣做太慢了','這樣做會被客人罵','這樣做會把鍋子弄壞']),
+ why:'舀水只是處理表面，鍋下的火還在燒，水就會一直滾。'});
+Q.push({id:'qe5',g:9,type:'mc',pts:3,no:'加碼 5',label:L4,
+ q:'師傅是怎麼讓水不再沸騰的？',ans:'把鍋子下面的一些柴火抽出來，讓火變小',
+ opts:shuffle(['把鍋子下面的一些柴火抽出來，讓火變小','在鍋子裡加冷水','把鍋蓋蓋緊','用扇子用力搧']),
+ why:'火變小了，水就慢慢不再沸騰。',hint:'看看師傅動了鍋子下面的什麼。'});
+Q.push({id:'qe6',g:9,type:'mc',pts:3,no:'加碼 6',label:L4+'（成語）',
+ q:'師傅說他用的方法叫做什麼？',ans:'釜底抽薪',
+ opts:shuffle(['釜底抽薪','揚湯止沸','畫蛇添足','火上加油']),
+ why:'「釜底抽薪」是從鍋底把柴火抽走。「揚湯止沸」是康康一開始的做法。',hint:'師傅是從鍋子下面動手的。'});
+Q.push({id:'qe7',g:9,type:'mc',pts:3,no:'加碼 7',label:L4,
+ q:'師傅想告訴康康什麼道理？',ans:'處理問題不能只看表面，要先找到問題的根本',
+ opts:shuffle(['處理問題不能只看表面，要先找到問題的根本','做事越快越好','遇到問題先問別人','水滾了就要趕快關火']),
+ why:'水一直滾的根本原因是火太大，找到根本才能真正解決。'});
+Q.push({id:'qe8',g:9,type:'order',pts:4,no:'加碼 8',label:L4,
+ q:'把〈水滾了〉的事情，依照課文發生的順序排好。',
+ answer:['鍋裡的水滾了，康康把水舀起來再倒回去。','師傅走過來，說這樣沒辦法讓水不再沸騰。','師傅把鍋子下面的一些柴火抽出來。','火漸漸變小，水也不再沸騰了。'],
+ why:'先是康康的做法不行，接著師傅示範，最後水才不再沸騰。'});
+Q.push({id:'qe9',g:9,type:'speak',pts:5,no:'加碼 9',label:L4,lookup:false,
+ prompt:'生活裡有沒有什麼事，也要像「釜底抽薪」一樣，先找出根本的原因才能解決？請說一件事、原因和你的辦法。',
+ tip:'要說出一件具體的事、真正的原因，還有對應的辦法。例如總是忘記帶東西，原因是睡前沒有整理。沒有標準答案，但原因要說得通。'});
+
+/* ---------- bonus gate: 〈為梨花撐傘〉 課文細節（依課本頁面核對） ---------- */
+var L5=fmt(TITLES[4]);
+Q.push({id:'qf1',g:10,type:'mc',pts:3,no:'加碼 1',label:L5,
+ q:'〈為梨花撐傘〉裡，上將梨有什麼特色？',ans:'甜美多汁，很受歡迎',
+ opts:shuffle(['甜美多汁，很受歡迎','又酸又硬，沒人喜歡','只在夏天結果','很小很小，吃不到肉']),
+ why:'課文一開始介紹了宜蘭三星鄉的上將梨，甜美多汁，非常受歡迎。',hint:'看看第一段。'});
+Q.push({id:'qf2',g:10,type:'mc',pts:3,no:'加碼 2',label:L5,
+ q:'梨花開的時候常常下雨，結果會怎麼樣？',ans:'很多梨花淋了雨就腐爛，結不成果子',
+ opts:shuffle(['很多梨花淋了雨就腐爛，結不成果子','梨花開得更多','梨子變得更甜','梨樹長得更高']),
+ why:'梨花開在細雨綿綿的時節，很多花因為淋雨而腐爛，所以結不成果子。'});
+Q.push({id:'qf3',g:10,type:'mc',pts:3,no:'加碼 3',label:L5,
+ q:'梨農蔣松根先生，每年這個時候為什麼煩心？',ans:'擔心梨花淋雨，今年又沒有收成',
+ opts:shuffle(['擔心梨花淋雨，今年又沒有收成','擔心梨子太甜賣不出去','擔心沒有人來買梨子','擔心自己的雨傘壞了']),
+ why:'他站在雨中看著梨園，擔心再這樣下雨，今年又會沒有收成。'});
+Q.push({id:'qf4',g:10,type:'mc',pts:3,no:'加碼 4',label:L5,
+ q:'蔣先生是在什麼時候想到好主意的？',ans:'吃完泡麵的時候',
+ opts:shuffle(['吃完泡麵的時候','睡覺的時候','在雨中散步的時候','和朋友聊天的時候']),
+ why:'課文說他吃完泡麵，腦海中突然想到一個好主意。',hint:'看看第三頁開頭。'});
+Q.push({id:'qf5',g:10,type:'mc',pts:3,no:'加碼 5',label:L5,
+ q:'蔣先生想到的好辦法是什麼？',ans:'把空碗倒過來，用竹筷子撐著，綁在梨花旁邊',
+ opts:shuffle(['把空碗倒過來，用竹筷子撐著，綁在梨花旁邊','把梨樹搬進屋子裡','用大傘把整座梨園蓋起來','把梨花全部摘掉']),
+ why:'他把空碗倒過來當小雨傘，用竹筷子撐著，再用膠帶和線綁在梨花旁邊。'});
+Q.push({id:'qf6',g:10,type:'mc',pts:3,no:'加碼 6',label:L5,
+ q:'結果怎麼樣？',ans:'有「撐傘」的梨樹，結出的果實比其他梨樹多',
+ opts:shuffle(['有「撐傘」的梨樹，結出的果實比其他梨樹多','撐傘的梨樹都死掉了','撐傘和沒撐傘的梨樹一樣多','撐傘的梨樹結的果實比較少']),
+ why:'那一年，撐傘的梨樹結出的果實果然比其他梨樹還要多。'});
+Q.push({id:'qf7',g:10,type:'mc',pts:3,no:'加碼 7',label:L5+'（課名）',
+ q:'為什麼課名叫做「為梨花撐傘」？',ans:'因為梨農用小雨傘保護梨花，不讓梨花淋雨壞掉',
+ opts:shuffle(['因為梨農用小雨傘保護梨花，不讓梨花淋雨壞掉','因為梨農自己怕淋雨','因為梨花長得像雨傘','因為梨農賣的是雨傘']),
+ why:'課名是在說，梨農為梨花做了小雨傘，目的是保護梨花，才能結出果子。'});
+Q.push({id:'qf8',g:10,type:'mc',pts:3,no:'加碼 8',label:L5+'（詞語）',
+ q:'「腐爛」是什麼意思？',ans:'東西壞掉，變得很爛',
+ opts:shuffle(['東西壞掉，變得很爛','東西變得很甜','東西變得很大','東西變得很香']),
+ why:'梨花淋雨以後壞掉了，就叫做「腐爛」。'});
+Q.push({id:'qf9',g:10,type:'order',pts:4,no:'加碼 9',label:L5,
+ q:'把〈為梨花撐傘〉的事情，依照課文發生的順序排好。',
+ answer:['梨花開在下雨的時節，很多花淋雨腐爛。','蔣先生站在雨中看著梨園，很煩心。','蔣先生用空碗做成小雨傘，綁在梨花旁邊。','撐傘的梨樹，結出的果實比較多。'],
+ why:'先有問題，接著煩心，再想出辦法，最後得到好結果。'});
+Q.push({id:'qf10',g:10,type:'speak',pts:5,no:'加碼 10',label:L5,lookup:true,
+ prompt:'蔣松根先生是怎麼樣的人？請說：「我覺得他很＿＿，課文中的證據是＿＿。」',
+ tip:'人物特質要有課文證據。例如肯動腦筋，證據是他用空碗和竹筷子做成小雨傘。其他說法只要證據對得上，也可以給分。'});
+
 /* ---------- state ---------- */
 var app=document.getElementById('app');
 var KEY='guoyu15-v1', res={}, cur=null, timer=null;
@@ -282,7 +478,7 @@ function sum(list,f){return list.reduce(function(s,q){return s+f(q)},0)}
 function gMax(g){return sum(gq(g),function(q){return q.pts})}
 function gGot(g){return sum(gq(g),function(q){return res[q.id]?res[q.id].got:0})}
 function gDone(g){return gq(g).filter(function(q){return res[q.id]}).length}
-function total(){return sum(Q,function(q){return res[q.id]?res[q.id].got:0})}
+function total(){return sum(Q.filter(function(q){return q.g<=5}),function(q){return res[q.id]?res[q.id].got:0})}
 function clearTimer(){if(timer){clearInterval(timer);timer=null}}
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 function btn(txt,cls,fn){var b=el('button','btn '+(cls||''),txt);b.type='button';b.onclick=fn;return b}
@@ -296,8 +492,8 @@ function half(p){return Math.ceil(p/2)}
 function home(){
  clearTimer();cur=null;app.replaceChildren();
  var hero=el('header','hero');
- hero.append(el('h1',null,'軒瑀的國語闖關'));
- hero.append(el('p','sub','第 1～5 課，一共 5 關，滿分 100 分。'));
+ hero.append(el('h1',null,'國語闖關'));
+ hero.append(el('p','sub','第 1～5 課，一共 5 關，滿分 100 分，另有一個加碼關。'));
  var chips=el('div','chips');
  TITLES.forEach(function(t,i){var c=el('span','chip',LESSON[i]+' '+fmt(t));c.style.setProperty('--c',cvar(i+1));chips.append(c)});
  hero.append(chips);
@@ -317,7 +513,7 @@ function home(){
   board.append(note);
  });
  app.append(board);
- var all=GATES.every(function(g){return gDone(g.id)===gq(g.id).length});
+ var all=GATES.filter(function(g){return g.id<=5}).every(function(g){return gDone(g.id)===gq(g.id).length});
  if(all||total()>0){
   var r=el('div','row');
   if(all)r.append(btn('看總成績','',final));
@@ -572,7 +768,7 @@ function gateEnd(g){
  p.append(el('p',null,miss===0?'這一關全部一次就答對，太厲害了！':'有 '+miss+' 題需要再看一次，最後的成績頁會列出來。'));
  var r=el('div','row');
  if(g<5)r.append(btn('前往第'+NUM[g]+'關','',function(){startGate(g+1)}));
- else r.append(btn('看總成績','',final));
+ else if(g===5)r.append(btn('看總成績','',final));
  r.append(btn('回地圖','ghost',home));
  p.append(r);app.append(p);window.scrollTo(0,0);
 }
@@ -589,7 +785,7 @@ function final(){
  var t=total();
  var tier=t>=90?'五課大師':t>=75?'便利貼高手':t>=60?'提早五分鐘小隊':'再加把火，繼續練習';
  var p=el('section','panel');
- p.append(el('h1',null,'軒瑀的總成績'));
+ p.append(el('h1',null,'總成績'));
  var b=el('p','big',String(t));b.append(el('small',null,' / 100 分'));p.append(b);
  p.append(el('p','tier',tier));
  var tb=el('div','table');
