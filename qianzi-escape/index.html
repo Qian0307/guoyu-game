@@ -1,0 +1,948 @@
+<title>千字密室逃脫</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap">
+<style>
+/* Layout concept: full-bleed first-person 3D room. Thin HUD around the edges, bamboo-slip puzzle cards float over the scene. Single dark look on purpose. */
+:root{
+  --ink:#0b1720; --ink-2:#13283a; --line:#2b4d5f; --jade:#52d1a5; --jade-deep:#1c7d64;
+  --slip:#e8efe6; --slip-2:#d3e1d4; --slip-ink:#14262e; --gold:#f2b632; --gold-deep:#a9780f;
+  --seal:#d9482f; --mist:#a9c2c0; --ok:#1f7a55; --text:#e6f1ee;
+  --display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ink);overflow:hidden}
+body{font-family:var(--body);font-size:17px;line-height:1.6;color:var(--text);padding:0}
+#view{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;background:var(--ink)}
+#view.drag{cursor:grabbing}
+#view.hot{cursor:pointer}
+.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .6s;z-index:30}
+#fade.on{opacity:1;pointer-events:auto}
+#boot{position:fixed;inset:0;display:grid;place-items:center;text-align:center;background:var(--ink);z-index:40;font-family:var(--display);font-size:22px;color:var(--gold);padding:24px}
+
+.hud{position:fixed;z-index:10;pointer-events:none}
+.hud>*{pointer-events:auto}
+.top{top:max(12px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.chip{background:rgba(11,23,32,.78);border:1px solid var(--line);border-radius:6px;padding:6px 12px;backdrop-filter:blur(4px)}
+.room{font-family:var(--display);font-weight:900;font-size:20px;color:var(--gold);letter-spacing:.08em}
+.room small{display:block;font-family:var(--body);font-weight:400;font-size:13px;color:var(--mist);letter-spacing:0}
+.tools{display:flex;gap:8px;align-items:center}
+.coins{display:flex;align-items:center;gap:7px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+.coin{width:20px;height:20px;border-radius:50%;background:var(--gold);position:relative;display:inline-block}
+.coin::after{content:"";position:absolute;inset:6px;background:var(--ink)}
+.coins.bump .coin{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.5) rotate(20deg)}}
+.mini{font:inherit;font-size:14px;background:rgba(11,23,32,.78);border:1px solid var(--line);color:var(--mist);border-radius:6px;padding:6px 10px;cursor:pointer}
+.bottom{bottom:max(14px,env(safe-area-inset-bottom,0px));left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.slots{display:flex;gap:8px;align-items:center}
+.slot{width:52px;height:52px;display:grid;place-items:center;border:2px dashed var(--line);border-radius:8px;background:rgba(11,23,32,.7);font-family:var(--display);font-weight:900;font-size:28px;color:var(--line)}
+.slot.on{border:2px solid var(--gold);color:var(--gold);background:rgba(11,23,32,.9);box-shadow:0 0 14px rgba(242,182,50,.55)}
+.slots .lab{font-size:13px;color:var(--mist);margin-right:4px}
+.pad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,46px);gap:6px}
+.pad button{font:inherit;font-size:20px;background:rgba(11,23,32,.78);border:1px solid var(--line);color:var(--text);border-radius:8px;cursor:pointer;touch-action:none;user-select:none}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+#tip{position:fixed;z-index:9;pointer-events:none;background:rgba(11,23,32,.9);border:1px solid var(--gold-deep);color:var(--gold);font-weight:700;padding:3px 10px;border-radius:4px;font-size:15px;transform:translate(14px,-34px);white-space:nowrap}
+#toast{position:fixed;z-index:12;left:50%;top:max(70px,calc(env(safe-area-inset-top,0px) + 62px));transform:translateX(-50%);max-width:min(620px,calc(100% - 32px));background:rgba(11,23,32,.92);border:1px solid var(--line);border-left:6px solid var(--seal);border-radius:6px;padding:10px 16px;opacity:0;transition:opacity .4s;pointer-events:none}
+#toast.on{opacity:1}
+#toast b{color:var(--gold)}
+#help{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom,0px) + 80px));transform:translateX(-50%);font-size:14px;color:var(--mist);background:rgba(11,23,32,.7);padding:4px 12px;border-radius:20px;pointer-events:none;transition:opacity 1s;text-align:center;max-width:calc(100% - 32px)}
+
+.modal{position:fixed;inset:0;z-index:20;background:rgba(5,12,18,.72);display:grid;place-items:center;padding:16px;overflow:auto}
+.modal[hidden]{display:none}
+.card{width:min(640px,100%);max-height:calc(100% - 8px);overflow:auto;background:var(--slip);color:var(--slip-ink);border-radius:8px;padding:22px max(16px,3vw) 24px;border-top:6px solid var(--jade-deep);border-bottom:6px solid var(--jade-deep);box-shadow:0 14px 50px rgba(0,0,0,.6);
+  background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(20% - 1px),rgba(20,38,46,.08) calc(20% - 1px),rgba(20,38,46,.08) 20%)}
+.card.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.tag{display:inline-block;font-size:14px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--jade-deep);padding:1px 10px;border-radius:2px;margin-bottom:8px}
+.big{font-family:var(--display);font-weight:900;font-size:clamp(32px,8vw,54px);letter-spacing:.14em;text-align:center;line-height:1.3;margin:4px 0 10px;text-wrap:balance}
+.big em{font-style:normal;color:#c98a00;text-shadow:0 0 1px #c98a00}
+h2.t{font-family:var(--display);font-size:25px;margin:0 0 8px;text-wrap:balance}
+.ask{margin:0 0 12px;font-size:18px}
+.small{font-size:15px;color:#3b5560}
+.ans{display:flex;gap:10px;flex-wrap:wrap}
+input.t{flex:1 1 180px;min-width:0;font:inherit;font-size:22px;padding:10px 14px;border:2px solid var(--slip-ink);border-radius:6px;background:#fff;color:var(--slip-ink)}
+input.t:disabled{background:#cfdacf;border-color:#8ea39a}
+.btn{font:inherit;font-weight:700;font-size:18px;background:var(--jade-deep);color:#fff;border:0;border-radius:6px;padding:11px 20px;cursor:pointer;box-shadow:0 3px 0 #0f4a3c}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0f4a3c}
+.btn.alt{background:transparent;color:var(--slip-ink);border:2px solid var(--slip-ink);box-shadow:none}
+.btn.gold{background:var(--gold);color:#3a2800;box-shadow:0 3px 0 var(--gold-deep)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,.mini:focus-visible,.pad button:focus-visible,.tray button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.ghost{font:inherit;font-size:14px;background:none;border:0;color:#46636d;text-decoration:underline;cursor:pointer;padding:6px 2px}
+.hint{margin:10px 0 0;padding:8px 12px;background:#fff6d6;border-left:5px solid var(--gold);font-size:16px}
+.fb{min-height:1.6em;margin-top:8px;font-weight:700}
+.fb.bad{color:#b3331e}.fb.good{color:var(--ok)}
+.tray{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tray button{font-family:var(--display);font-weight:900;font-size:28px;width:54px;height:54px;border:2px solid var(--slip-ink);background:#fff;border-radius:6px;cursor:pointer;color:var(--slip-ink)}
+.res{margin-top:14px;padding:12px 16px;background:var(--slip-2);border-left:6px solid var(--jade-deep);border-radius:2px}
+.res b.ok{color:var(--ok)}
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0 12px}
+.chip2{background:var(--ink);color:#fff;border-radius:8px;padding:8px 4px;text-align:center;font-size:13px;line-height:1.35;border:2px solid var(--gold-deep)}
+.chip2 b{display:block;font-family:var(--display);font-size:28px;color:var(--gold);line-height:1.1}
+.chip2 .e{font-size:20px}
+.lines{border:2px solid var(--slip-ink);border-radius:6px;padding:8px 14px;background:rgba(255,255,255,.55);margin:6px 0 12px}
+.lines p{margin:4px 0;font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.18em}
+.stamp{display:inline-block;border:4px solid var(--seal);color:var(--seal);font-family:var(--display);font-weight:900;font-size:30px;padding:6px 16px;border-radius:6px;transform:rotate(-6deg);letter-spacing:.2em}
+.center{text-align:center}
+.teach{width:min(560px,100%)}
+.teach .row .btn{font-size:15px;padding:8px 14px}
+.teach textarea{width:100%;min-height:140px;margin-top:10px;font:inherit;font-size:14px;border:2px solid var(--slip-ink);border-radius:6px;padding:8px;background:#fff;color:var(--slip-ink)}
+@media (max-width:560px){.slot{width:44px;height:44px;font-size:24px}.pad{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,42px)}.room{font-size:17px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+</style>
+
+<canvas id="view" aria-label="3D 密室"></canvas>
+<div class="vig"></div>
+<div id="boot">千字密室準備中⋯</div>
+<div id="fade"></div>
+
+<div class="hud top">
+  <div class="chip room" id="room"><span id="roomN"></span><small id="roomS"></small></div>
+  <div class="tools">
+    <div class="chip coins" id="coins"><span class="coin"></span><span id="coinN">0</span></div>
+    <button class="mini" id="dex" type="button">圖鑑</button>
+    <button class="mini" id="mute" type="button">音效 開</button>
+    <button class="mini" id="tbtn" type="button">老師</button>
+  </div>
+</div>
+<div class="hud bottom">
+  <div class="slots chip" id="slots"></div>
+  <div class="pad" id="pad">
+    <button class="u" data-k="f" type="button" aria-label="前進">▲</button>
+    <button class="l" data-k="tl" type="button" aria-label="向左轉">◀</button>
+    <button class="d" data-k="b" type="button" aria-label="後退">▼</button>
+    <button class="r" data-k="tr" type="button" aria-label="向右轉">▶</button>
+  </div>
+</div>
+<div id="help">拖曳畫面環顧 ・ W A S D 或 ▲▼ 移動 ・ 點發光的寶物調查</div>
+<div id="tip" hidden></div>
+<div id="toast"></div>
+<div class="modal" id="modal" hidden><div class="card" id="mcard"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+if(!window.THREE){$("boot").textContent="3D 引擎載入失敗,請重新整理頁面。";return;}
+var T=THREE;
+var STORE="qianzi-escape-v1";
+var FONT='"Noto Serif TC","Songti TC","PMingLiU",serif';
+var HANRE=/[一-鿿]/g;
+function norm(s){return String(s||"").replace(/[\s　，。！？、；：,.!?;:「」『』“”"']/g,"").replace(/咸/g,"鹹");}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function hanLen(s){var m=String(s).match(HANRE);return m?m.length:0;}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+/* ================= 內容 ================= */
+function C(c,m,e){return {c:c,m:m,e:e};}
+var LINES=[
+ {t:"金生麗水",chars:[C("金","黃金,貴重的金屬","🪙"),C("生","出產、長出來","🌱"),C("麗","美麗、漂亮","🌸"),C("水","河水,麗水是河名","🌊")],meaning:"黃金出產在麗水這條河裡。",fun:"麗水是古代一條出產金沙的河,所以說「金生麗水」。",kw:[{any:["金"],q:"句子裡的「金」是什麼東西?"},{any:["水","河"],q:"這些金子是從哪裡來的?"}]},
+ {t:"玉出崑岡",chars:[C("玉","漂亮的寶石","🟩"),C("出","出產、產自","🚪"),C("崑","崑崙山,很高的山","⛰️"),C("岡","山岡、山坡","🏔️")],meaning:"美麗的玉石出產在崑崙山。",fun:"崑崙山自古就以出產美玉出名。",kw:[{any:["玉","寶石","石頭","翡翠"],q:"崑崙山出產什麼?"},{any:["山","崑","崙","岡"],q:"它是從哪裡出產的?"}]},
+ {t:"劍號巨闕",chars:[C("劍","寶劍","🗡️"),C("號","名字叫做","📣"),C("巨","很大","🐘"),C("闕","巨闕是一把名劍","🏯")],meaning:"最有名的寶劍,名字叫做「巨闕」。",fun:"巨闕是傳說中春秋時代越王勾踐的名劍。",kw:[{any:["劍"],q:"這句在講什麼東西?"},{any:["叫","名","稱","號"],q:"這把劍的名字是什麼?"}]},
+ {t:"珠稱夜光",chars:[C("珠","圓圓的寶珠","🔮"),C("稱","被稱作","🏷️"),C("夜","晚上","🌙"),C("光","發光、亮亮的","💡")],meaning:"最有名的寶珠叫「夜光」,晚上也會發亮。",fun:"「夜光」是傳說中晚上也會發亮的寶珠。",kw:[{any:["珠"],q:"這句在講什麼東西?"},{any:["夜","晚","光","亮"],q:"這顆珠子有什麼特別的地方?"}]},
+ {t:"果珍李柰",chars:[C("果","水果","🍎"),C("珍","珍貴、好吃","💰"),C("李","李子","🍑"),C("柰","像小蘋果的水果","🍏")],meaning:"水果裡最珍貴好吃的是李子和柰(像小蘋果)。",fun:"「柰」是古代的水果,有人說像小蘋果。",kw:[{any:["果","李","柰","蘋"],q:"這句在講什麼東西?"},{any:["珍","貴","好吃","最"],q:"這些水果怎麼樣?"}]},
+ {t:"菜重芥薑",chars:[C("菜","蔬菜","🥬"),C("重","重視、很重要","⚖️"),C("芥","芥菜,辣辣的","🥦"),C("薑","薑,辣辣的調味","🍵")],meaning:"蔬菜裡最重要的是芥菜和薑。",fun:"芥菜磨成粉就是芥末;薑越老越辣,所以說「薑還是老的辣」。",kw:[{any:["菜","芥","薑"],q:"這句在講什麼東西?"},{any:["重","重要","重視","最"],q:"這些菜在古人心裡怎麼樣?"}]},
+ {t:"海鹹河淡",chars:[C("海","大海","🌊"),C("鹹","像鹽巴的味道","🧂"),C("河","河流","🏞️"),C("淡","沒什麼味道","💧")],meaning:"海水是鹹的,河水是淡的。",fun:"海水裡溶了很多鹽,所以是鹹的;河水的鹽很少,所以是淡的。",kw:[{any:["鹹"],q:"海水喝起來是什麼味道?"},{any:["淡"],q:"那河水呢?"}]},
+ {t:"鱗潛羽翔",chars:[C("鱗","魚鱗,代表魚","🐟"),C("潛","潛入水裡","🤿"),C("羽","羽毛,代表鳥","🪶"),C("翔","在天空飛","🕊️")],meaning:"有鱗的魚潛在水裡,有羽毛的鳥飛在天上。",fun:"千字文用「鱗」代表魚、「羽」代表鳥,是用身上的特徵來代稱。",kw:[{any:["魚","鱗","水"],q:"有鱗片的魚在哪裡?"},{any:["鳥","羽","飛","天"],q:"有羽毛的鳥呢?"}]}
+];
+
+var ROOMS=[
+ {name:"寶物閣",sub:"第三關・寶物奇珍",story:"千字寶庫的大門被大盜鎖住了!找到四個<b>字靈</b>,拼出密碼,才能開門。",
+  doorLines:["＿生麗水","＿出崑岡","＿號巨闕","＿稱夜光"],code:"金玉劍珠",keys:["金","玉","劍","珠"]},
+ {name:"果菜園",sub:"第四關・果菜魚鳥(上)",story:"門後是一座香香的園子。水果和蔬菜裡藏著新的字靈。",
+  doorLines:["＿珍＿柰","＿重＿薑"],code:"果李菜芥",keys:["果","李","菜","芥"]},
+ {name:"江海閣",sub:"第四關・果菜魚鳥(下)",story:"嘩啦啦!這裡有海、有河、有魚、有鳥。找出最後四個字靈。",
+  doorLines:["＿鹹河＿","＿潛＿翔"],code:"海淡鱗羽",keys:["海","淡","鱗","羽"]},
+ {name:"對仗寶庫",sub:"終關・對仗密碼",story:"寶庫最深處!解開對對碰的機關,打開大寶箱。",
+  doorLines:[],code:"",keys:["厚","落","作","考"]}
+];
+
+var OBJS=[
+ {id:"a1",room:0,name:"黃金寶箱",line:0,key:"金",kind:"謎語",show:"＿",ask:"寶箱上刻著一道謎語:<br><b>「閃閃發亮的貴重金屬,第一名的獎牌就是它。」</b><br>請打出這個字。",hint:"國王的王冠、第一名的獎牌,都是這個顏色。",answers:["金"],explain:true},
+ {id:"a2",room:0,name:"玉璧台座",line:1,key:"玉",kind:"組字",show:"王 ＋ 丶 ＝ ？",ask:"台座上有一個「王」字,偷偷多了一點,變成漂亮的寶石。請打出這個字。",hint:"翡翠手鐲、玉山的「玉」。",answers:["玉"],explain:true},
+ {id:"a3",room:0,name:"寶劍架",line:2,key:"劍",kind:"謎語",show:"＿",ask:"劍架的牌子寫著:<br><b>「長長的,有立刀旁,俠客腰上掛的,是刀的兄弟。」</b><br>請打出這個字。",hint:"「巨闕」就是一把有名的___,右邊有個立刀旁。",answers:["劍"],explain:true},
+ {id:"a4",rad:"wang",room:0,name:"夜光珠",line:3,key:"珠",kind:"組字",show:"王 ＋ 朱 ＝ ？",ask:"王字旁加上紅色的「朱」,是一顆圓圓、會發亮的寶貝。請打出這個字。",hint:"珍珠的「珠」。",answers:["珠"],explain:true},
+ {id:"b1",fun:"「果」字像一棵樹上長著一顆顆果實。",room:1,name:"果樹",line:4,key:"果",kind:"謎語",show:"水 ＋ ＿",ask:"謎語:<br><b>「長在樹上,甜甜酸酸,蘋果和李子都是它。」</b><br>「水」加上這個字,就是「水＿」。請打出缺的字。",hint:"「水果」的後面那個字。",answers:["果"],explain:false},
+ {id:"b2",rad:"mu",room:1,name:"李子籃",line:4,key:"李",kind:"組字",show:"木 ＋ 子 ＝ ？",ask:"樹木的「木」,抱著一個小孩「子」,是一種紅紅的水果。請打出這個字。",hint:"李子的「李」,姓李的那個李。",answers:["李"],explain:true},
+ {id:"b3",rad:"cao",room:1,name:"蔬菜攤",line:5,key:"菜",kind:"組字",show:"艹 ＋ 采 ＝ ？",ask:"草字頭,下面加「精采」的「采」,是綠綠的、可以炒來吃的東西。請打出這個字。",hint:"「蔬＿」、青＿、白＿的那個字。",answers:["菜"],explain:false},
+ {id:"b4",room:1,name:"芥菜袋",line:5,key:"芥",kind:"組字",show:"艹 ＋ 介 ＝ ？",ask:"草字頭,加「介紹」的「介」,是辣辣的蔬菜,壽司旁邊的芥末就用它做。請打出這個字。",hint:"「芥末」的第一個字。",answers:["芥"],explain:true},
+ {id:"c1",rad:"shui",room:2,name:"藍海地球儀",line:6,key:"海",kind:"組字",show:"氵 ＋ 每 ＝ ？",ask:"三點水,加上「每天」的「每」,是又大又藍、有很多水的地方。請打出這個字。",hint:"大___、海邊、海水的那個字。",answers:["海"],explain:false},
+ {id:"c2",room:2,name:"白開水壺",line:6,key:"淡",kind:"反義詞",show:"鹹 ↔ ？",ask:"海水是「鹹」的,河水喝起來沒什麼味道,味道和「鹹」剛好相反。請打出這個字。",hint:"三點水,右邊是兩個火。「清淡」的淡。",answers:["淡"],explain:true},
+ {id:"c3",rad:"yu",room:2,name:"銀魚飾",line:7,key:"鱗",kind:"謎語",show:"＿",ask:"謎語:<br><b>「魚身上一片一片、閃閃發亮的小東西,像盔甲。」</b><br>這個字裡面有個魚字旁。請打出這個字。",hint:"左邊是「魚」,右邊是「粦」。",answers:["鱗"],explain:false},
+ {id:"c4",room:2,name:"棲木小鳥",line:7,key:"羽",kind:"謎語",show:"＿",ask:"謎語:<br><b>「鳥身上的毛,有兩片像翅膀的樣子。」</b><br>請打出這個字(羽毛球的那個字)。",hint:"羽毛球的「羽」。",answers:["羽"],explain:true},
+ {id:"d1",room:3,name:"天地石柱",line:-1,key:"厚",kind:"對對碰",show:"天高地＿",ask:"兩根石柱在對對碰!天很高,大地很___?",hint:"「厚」:厚厚的書、厚厚的外套。",answers:["厚","遠","廣","闊"],after:"天高地厚:天很高,大地很厚。"},
+ {id:"d2",room:3,name:"日月轉盤",line:-1,key:"落",kind:"對對碰",show:"日升月＿",ask:"太陽升起來,月亮就會…?",hint:"太陽「升」,月亮反過來。",answers:["落","沉","降"],after:"日升月落:太陽升起,月亮落下。"},
+ {id:"d3",room:3,name:"書桌",line:-1,key:"作",kind:"創作"},
+ {id:"d4",room:3,name:"字靈大會考石碑",line:-1,key:"考",kind:"大會考"}
+];
+var RAD={
+ wang:{n:"王字旁(玉字旁)",ex:"珍、珠、球",ans:["玉","石","寶","珠"],say:"王字旁的字,多半和玉石、寶石有關。"},
+ mu:{n:"木字旁",ex:"林、桌、樹",ans:["木","樹","植"],say:"木字旁的字,多半和樹木有關。"},
+ cao:{n:"草字頭",ex:"花、草、葉",ans:["草","植","花","葉","菜"],say:"草字頭的字,多半和植物有關。"},
+ shui:{n:"三點水",ex:"河、江、湖",ans:["水"],say:"三點水的字,多半和水有關。"},
+ yu:{n:"魚字旁",ex:"鯉、鯨、鰻",ans:["魚"],say:"魚字旁的字,多半和魚有關。"}
+};
+var QUIZ=[
+ {m:"黃金出產在麗水這條河裡。",show:"金生麗＿",answers:["水"],hint:"河水的水。"},
+ {m:"最有名的寶珠叫「夜光」,晚上也會發亮。",show:"珠稱夜＿",answers:["光"],hint:"發光、光亮的光。"},
+ {m:"海水是鹹的,河水是淡的。",show:"海＿河淡",answers:["鹹"],hint:"像鹽巴的味道。"},
+ {m:"有鱗的魚潛在水裡,有羽毛的鳥飛在天上。",show:"鱗潛羽＿",answers:["翔","飛"],hint:"鳥兒在天空做的事。"},
+ {m:"水果裡最珍貴好吃的是李子和柰(像小蘋果)。",show:"果珍李＿",answers:["柰","奈"],hint:"像小蘋果的水果,木字頭下面一個「示」。"},
+ {m:"蔬菜裡最重要的是芥菜和薑。",show:"菜重芥＿",answers:["薑"],hint:"辣辣的調味,可以煮薑湯。"}
+];
+var KFACT=[
+ [{p:[-3.8,.95,3.6],f:"千字文一共有 1000 個不同的字,而且沒有一個字重複!"},{p:[4.0,.95,.2],f:"傳說寫千字文的周興嗣,一夜之間頭髮就變白了。"},{p:[0,.95,-3.2],f:"「天地玄黃」的「玄」是黑色:天是黑黑的,地是黃黃的。"}],
+ [{p:[0,.95,-1.0],f:"「果」字像一棵樹上長著一顆顆果實。"},{p:[-1.4,.95,4.0],f:"有句話說「薑還是老的辣」,越老的薑越辣。"},{p:[1.6,.95,-4.0],f:"芥末的辣會衝上鼻子,不是辣舌頭,所以吃壽司會流眼淚。"}],
+ [{p:[0,.95,-1.5],f:"海水平均每 1 公斤約有 35 公克的鹽,所以又鹹又苦。"},{p:[-4.0,.95,.2],f:"魚的鱗片上有一圈一圈的紋路,像樹的年輪,可以看出魚幾歲。"},{p:[4.0,.95,-.2],f:"鳥的羽毛有很多層,可以保暖,也可以幫助飛行。"}],
+ [{p:[-4.0,.95,3.8],f:"「對仗」就是字數一樣、意思相對,像天對地、高對低。"},{p:[4.0,.95,-.5],f:"寫對句的小祕訣:先想「相反的字」,例如升↔落、高↔低。"},{p:[0,.95,.8],f:"千字文每四個字一句,而且兩句兩句押韻,所以唸起來像唱歌。"}]
+];
+var POOL="金玉水山河海天地日月花葉果菜魚鳥光夜號劍珠李薑芥淡鹹厚長深翔飛落晝草鱗羽";
+
+/* ================= 狀態 ================= */
+function loadS(){try{return JSON.parse(localStorage.getItem(STORE));}catch(e){return null;}}
+var S=loadS()||{room:0,coins:0,log:{},muted:false};
+S.log=S.log||{};
+if(typeof S.room!=="number"||S.room<0||S.room>3){S.room=0;}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
+function L(id){return S.log[id]||(S.log[id]={wrong:0,hint:0,ok:false});}
+function roomObjs(r){return OBJS.filter(function(o){return o.room===r;});}
+function roomDone(r){return roomObjs(r).every(function(o){return L(o.id).ok;});}
+
+/* ================= 音效 / 提示 ================= */
+var actx=null;
+function beep(kind){
+  if(S.muted){return;}
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;if(!AC){return;}
+    actx=actx||new AC();
+    var seq=kind==="ok"?[[660,0],[880,.1],[1100,.2]]:kind==="bad"?[[220,0],[180,.12]]:[[880,0],[1320,.1]];
+    seq.forEach(function(n){
+      var o=actx.createOscillator(),g=actx.createGain();
+      o.type=kind==="bad"?"sawtooth":"triangle";o.frequency.value=n[0];
+      g.gain.setValueAtTime(.0001,actx.currentTime+n[1]);
+      g.gain.exponentialRampToValueAtTime(.12,actx.currentTime+n[1]+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+n[1]+.2);
+      o.connect(g);g.connect(actx.destination);o.start(actx.currentTime+n[1]);o.stop(actx.currentTime+n[1]+.22);
+    });
+  }catch(e){}
+}
+var toastT=null;
+function toast(html,ms){
+  var t=$("toast");t.innerHTML=html;t.classList.add("on");
+  clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("on");},ms||4200);
+}
+
+/* ================= 3D 基礎 ================= */
+var canvas=$("view"),renderer;
+try{
+  renderer=new T.WebGLRenderer({canvas:canvas,antialias:true});
+}catch(e){$("boot").textContent="這台電腦無法顯示 3D 畫面(WebGL 不可用)。";return;}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.outputEncoding=T.sRGBEncoding;
+var scene=new T.Scene();
+var camera=new T.PerspectiveCamera(70,1,.1,60);
+camera.rotation.order="YXZ";
+var yaw=0,pitch=0;
+function resize(){
+  var w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+window.addEventListener("resize",resize);resize();
+
+function mkCanvas(w,h){var c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+function ctex(c,rx,ry){var t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=4;if(rx){t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(rx,ry);}return t;}
+function wallTex(base,line,rx,ry){
+  var c=mkCanvas(256,256),g=c.getContext("2d");
+  g.fillStyle=base;g.fillRect(0,0,256,256);
+  for(var i=0;i<900;i++){g.fillStyle="rgba(0,0,0,"+(Math.random()*.08)+")";g.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*6,1+Math.random()*3);}
+  g.strokeStyle=line;g.lineWidth=3;
+  for(var x=0;x<=256;x+=64){g.beginPath();g.moveTo(x,0);g.lineTo(x,256);g.stroke();}
+  g.beginPath();g.moveTo(0,128);g.lineTo(256,128);g.stroke();
+  return ctex(c,rx,ry);
+}
+function floorTex(c1,c2,rx){
+  var c=mkCanvas(256,256),g=c.getContext("2d");
+  for(var i=0;i<2;i++){for(var j=0;j<2;j++){g.fillStyle=(i+j)%2?c1:c2;g.fillRect(i*128,j*128,128,128);}}
+  for(var k=0;k<600;k++){g.fillStyle="rgba(0,0,0,"+(Math.random()*.07)+")";g.fillRect(Math.random()*256,Math.random()*256,3+Math.random()*8,2);}
+  g.strokeStyle="rgba(0,0,0,.35)";g.lineWidth=2;g.strokeRect(0,0,256,256);g.strokeRect(0,0,128,128);g.strokeRect(128,128,128,128);
+  return ctex(c,rx,rx);
+}
+function textTex(text,w,h,fg,bg,size,vertical){
+  var c=mkCanvas(w,h),g=c.getContext("2d");
+  if(bg){g.fillStyle=bg;g.fillRect(0,0,w,h);}
+  g.fillStyle=fg;g.textAlign="center";g.textBaseline="middle";
+  if(vertical){
+    var chars=text.split(""),step=size*1.15,y0=h/2-(chars.length-1)*step/2;
+    g.font="900 "+size+"px "+FONT;
+    chars.forEach(function(ch,i){g.fillText(ch,w/2,y0+i*step);});
+  }else{g.font="900 "+size+"px "+FONT;g.fillText(text,w/2,h/2);}
+  return ctex(c);
+}
+function M(color,o){return new T.MeshStandardMaterial(Object.assign({color:color,roughness:.85,metalness:.05},o||{}));}
+
+var group=null,hotRoots=[],hot={},markers=[],flickers=[],obstacles=[],doorParts=null,anim=[],spins=[],pendingFx=null;
+function add(m,x,y,z){m.position.set(x,y,z);group.add(m);return m;}
+function box(w,h,d,mat,x,y,z){return add(new T.Mesh(new T.BoxGeometry(w,h,d),mat),x,y,z);}
+function cyl(rt,rb,h,mat,x,y,z,seg){return add(new T.Mesh(new T.CylinderGeometry(rt,rb,h,seg||20),mat),x,y,z);}
+function sph(r,mat,x,y,z,sx,sy,sz){var m=add(new T.Mesh(new T.SphereGeometry(r,18,14),mat),x,y,z);if(sx){m.scale.set(sx,sy,sz);}return m;}
+function plane(w,h,mat,x,y,z,ry){var m=add(new T.Mesh(new T.PlaneGeometry(w,h),mat),x,y,z);if(ry){m.rotation.y=ry;}return m;}
+function sign(text,w,h,fg,bg,size,x,y,z,ry,vertical){
+  var m=plane(w,h,new T.MeshBasicMaterial({map:textTex(text,Math.round(w*180),Math.round(h*180),fg,bg,size,vertical),transparent:!bg}),x,y,z,ry);return m;
+}
+function torch(x,y,z,col,inten){
+  var m=sph(.09,new T.MeshBasicMaterial({color:col||0xffb050}),x,y,z);
+  var l=new T.PointLight(col||0xffa648,inten||1,9,1.6);l.position.set(x,y,z);group.add(l);
+  flickers.push({l:l,b:inten||1,p:Math.random()*10});return m;
+}
+function shell(wallBase,wallLine,fl1,fl2,ceil){
+  var wt=wallTex(wallBase,wallLine,3,1.5);
+  var ft=floorTex(fl1,fl2,5);
+  var wm=new T.MeshStandardMaterial({map:wt,side:T.BackSide,roughness:.95});
+  var mats=[wm,wm,new T.MeshStandardMaterial({color:ceil,side:T.BackSide,roughness:1}),new T.MeshStandardMaterial({map:ft,side:T.BackSide,roughness:.7}),wm,wm];
+  var m=new T.Mesh(new T.BoxGeometry(10,4,10),mats);m.position.y=2;group.add(m);
+}
+function makeHot(id,root,my,dist){
+  root.userData.hot=id;root.userData.dist=dist||4.6;hotRoots.push(root);hot[id]={root:root,id:id};
+  var mk=new T.Mesh(new T.OctahedronGeometry(.13),new T.MeshBasicMaterial({color:0xffd24a}));
+  var wp=new T.Vector3();root.updateMatrixWorld(true);root.getWorldPosition(wp);
+  mk.position.set(wp.x,wp.y+my,wp.z);group.add(mk);
+  markers.push({m:mk,id:id,y:wp.y+my,p:Math.random()*6});hot[id].marker=mk;
+  if(L(id).ok){mk.material.color.set(0x52d1a5);}
+  return root;
+}
+function holder(x,y,z,ry){var g=new T.Group();g.position.set(x,y,z);if(ry){g.rotation.y=ry;}group.add(g);return g;}
+function inHolder(g,mesh,x,y,z){mesh.position.set(x,y,z);g.add(mesh);return mesh;}
+function gbox(g,w,h,d,mat,x,y,z){return inHolder(g,new T.Mesh(new T.BoxGeometry(w,h,d),mat),x,y,z);}
+function gcyl(g,rt,rb,h,mat,x,y,z){return inHolder(g,new T.Mesh(new T.CylinderGeometry(rt,rb,h,20),mat),x,y,z);}
+function gsph(g,r,mat,x,y,z,sx,sy,sz){var m=inHolder(g,new T.Mesh(new T.SphereGeometry(r,16,12),mat),x,y,z);if(sx){m.scale.set(sx,sy,sz);}return m;}
+
+/* 門 */
+function buildDoor(roomIdx){
+  var r=ROOMS[roomIdx],wood=M(0x5a3a22),jade=M(0x1f8a6f,{roughness:.5}),gold=M(0xd9a520,{metalness:.7,roughness:.35});
+  var g=holder(0,0,-4.88);
+  gbox(g,.18,2.6,.22,wood,-1.1,1.3,0);gbox(g,.18,2.6,.22,wood,1.1,1.3,0);gbox(g,2.4,.2,.22,wood,0,2.6,0);
+  var glow=new T.Mesh(new T.PlaneGeometry(2,2.5),new T.MeshBasicMaterial({color:0xffe9a0}));glow.position.set(0,1.25,-.1);g.add(glow);
+  var pl=gbox(g,.95,2.45,.08,jade,-.48,1.25,.02),pr=gbox(g,.95,2.45,.08,jade,.48,1.25,.02);
+  gbox(g,.06,2.45,.1,gold,0,1.25,.07);
+  [-.48,.48].forEach(function(x){for(var i=0;i<3;i++){gsph(g,.06,gold,x*1.45,.6+i*.7,.1);}});
+  var gem=gsph(g,.12,new T.MeshBasicMaterial({color:0xd9482f}),0,1.2,.14);
+  sign(r.name,2.2,.7,"#f2b632","#14262e",110,0,3.05,-4.9,0);
+  var root=g;makeHot("door",root,3.55,5.6);
+  doorParts={pl:pl,pr:pr,gem:gem,glow:glow,open:false};
+  if(S["open"+roomIdx]){setDoorOpen(true,true);}
+}
+function setDoorOpen(open,instant){
+  if(!doorParts){return;}
+  doorParts.open=open;doorParts.gem.material.color.set(open?0x52d1a5:0xd9482f);
+  var tx=open?1.0:0;
+  if(instant){doorParts.pl.position.x=-.48-tx;doorParts.pr.position.x=.48+tx;}
+  else{anim.push({t:0,run:function(dt){this.t+=dt;var k=Math.min(1,this.t/1.2);doorParts.pl.position.x=-.48-tx*k;doorParts.pr.position.x=.48+tx*k;return k>=1;}});}
+}
+
+/* ---------- 房間 A:寶物閣 ---------- */
+function buildA(){
+  shell("#1f4a52","#143038","#2a3a40","#1a272c","#0e1c22");
+  var st=M(0x6c7f84),gold=M(0xd9a520,{metalness:.7,roughness:.3}),wood=M(0x6b4423);
+  var pil=[[-4.2,-4.2],[4.2,-4.2],[-4.2,4.2],[4.2,4.2]];
+  pil.forEach(function(p){cyl(.28,.32,4,st,p[0],2,p[1]);cyl(.36,.36,.2,gold,p[0],3.9,p[1]);obstacles.push([p[0],p[1],.45]);torch(p[0]+(p[0]>0?-.4:.4),2.2,p[1],0xffa648,.9);});
+  var rug=new T.Mesh(new T.PlaneGeometry(3.2,7),new T.MeshStandardMaterial({color:0x1c6b57,roughness:1}));rug.rotation.x=-Math.PI/2;add(rug,0,.02,0);
+  var bn=new T.Mesh(new T.PlaneGeometry(1.2,3),new T.MeshBasicMaterial({map:textTex("天地玄黃宇宙洪荒",200,500,"#e8c35a","#6e1d14",50,true)}));add(bn,-4.93,2,-1.5).rotation.y=Math.PI/2;
+  var bn2=new T.Mesh(new T.PlaneGeometry(1.2,3),new T.MeshBasicMaterial({map:textTex("寒來暑往秋收冬藏",200,500,"#e8c35a","#6e1d14",50,true)}));add(bn2,4.93,2,-1.5).rotation.y=-Math.PI/2;
+  /* a1 黃金寶箱 */
+  var g1=holder(-2.8,0,-2.6,.3);
+  gbox(g1,1.3,.7,.85,wood,0,.35,0);gbox(g1,1.34,.3,.9,wood,0,.85,0);
+  gbox(g1,.12,.75,.9,gold,-.4,.4,0);gbox(g1,.12,.75,.9,gold,.4,.4,0);gbox(g1,1.36,.1,.92,gold,0,.72,0);gbox(g1,.2,.25,.06,gold,0,.7,.47);
+  gsph(g1,.18,new T.MeshBasicMaterial({color:0xffe08a}),0,1.1,0);
+  var l1=new T.PointLight(0xffd060,.8,4);l1.position.set(-2.8,1.3,-2.6);group.add(l1);
+  obstacles.push([-2.8,-2.6,.85]);makeHot("a1",g1,1.45);
+  /* a2 玉璧台座 */
+  var g2=holder(2.8,0,-2.6);
+  gcyl(g2,.42,.5,1.0,st,0,.5,0);gcyl(g2,.5,.5,.1,gold,0,1.05,0);
+  var bi=new T.Mesh(new T.TorusGeometry(.38,.13,16,40),new T.MeshStandardMaterial({color:0x3fd19a,emissive:0x0f6a4a,roughness:.3,metalness:.1}));inHolder(g2,bi,0,1.62,0);bi.rotation.y=.3;
+  var l2=new T.PointLight(0x40e0a0,.7,4);l2.position.set(2.8,1.9,-2.6);group.add(l2);
+  obstacles.push([2.8,-2.6,.6]);makeHot("a2",g2,1.1);
+  /* a3 寶劍架 */
+  var g3=holder(-4.6,0,.6,Math.PI/2);
+  gbox(g3,2.0,.12,.12,wood,0,1.1,0);gbox(g3,.12,2.0,.12,wood,-.85,1.1,0);gbox(g3,.12,2.0,.12,wood,.85,1.1,0);
+  var blade=gbox(g3,.14,1.5,.03,M(0xd7e2e8,{metalness:.9,roughness:.2}),0,1.55,.08);
+  gbox(g3,.5,.08,.08,gold,0,.8,.08);gcyl(g3,.04,.04,.35,M(0x7a1f14),0,.58,.08);
+  g3.children.forEach(function(c){});
+  makeHot("a3",g3,1.55);
+  /* a4 夜光珠 */
+  var g4=holder(3.3,0,2.4);
+  gcyl(g4,.28,.34,.9,wood,0,.45,0);gcyl(g4,.3,.3,.06,gold,0,.93,0);
+  gsph(g4,.24,new T.MeshStandardMaterial({color:0xcfefff,emissive:0x6fc7ff,emissiveIntensity:.9,roughness:.1}),0,1.2,0);
+  var l4=new T.PointLight(0x7fd0ff,1,5);l4.position.set(3.3,1.4,2.4);group.add(l4);
+  obstacles.push([3.3,2.4,.4]);makeHot("a4",g4,.85);
+  buildDoor(0);
+}
+
+/* ---------- 房間 B:果菜園 ---------- */
+function buildB(){
+  shell("#6b4a2b","#4a321c","#7a5a38","#6a4a2a","#3a2a18");
+  var wood=M(0x7a4f2a),leaf=M(0x2f8f3f),trunk=M(0x5a3a1e);
+  /* 窗光 */
+  [-2.5,2.5].forEach(function(x){plane(1.4,1.6,new T.MeshBasicMaterial({color:0xfff0c0}),x,2.2,4.92,Math.PI);box(1.6,.1,.1,wood,x,3.05,4.9);box(1.6,.1,.1,wood,x,1.35,4.9);});
+  torch(-4.5,3,-3,0xffc070,.9);torch(4.5,3,-3,0xffc070,.9);torch(0,3.4,3,0xfff0c0,.8);
+  [[-4.55,0.7],[4.55,0.7]].forEach(function(p){box(.5,2.6,3,wood,p[0],1.3,p[1]-0.2);[0,1,2].forEach(function(i){cyl(.13,.13,.3,M([0xb0552a,0xd9a520,0x6a8f3a][i]),p[0]+(p[0]>0?-.3:.3),1.0+i*.65,p[1]-1+i*.15);});obstacles.push([p[0],p[1],1.2]);});
+  /* b1 果樹 */
+  var g1=holder(-2.8,0,-2.5);
+  gcyl(g1,.2,.28,2.0,trunk,0,1.0,0);gsph(g1,.9,leaf,0,2.4,0,1,.8,1);gsph(g1,.6,leaf,.6,2.0,.2);gsph(g1,.6,leaf,-.6,2.0,-.2);
+  [[.5,2.4,.6],[-.5,2.2,.55],[0,2.9,.4],[.6,2.0,-.5],[-.7,2.5,-.3]].forEach(function(p,i){gsph(g1,.13,new T.MeshStandardMaterial({color:i%2?0xe23a2e:0xf0b020,roughness:.4}),p[0],p[1],p[2]);});
+  obstacles.push([-2.8,-2.5,.7]);makeHot("b1",g1,3.5);
+  /* b2 李子籃 */
+  var g2=holder(2.8,0,-2.5);
+  gcyl(g2,.5,.42,.55,M(0xb08040),0,.28,0);
+  for(var i=0;i<9;i++){gsph(g2,.14,new T.MeshStandardMaterial({color:0x7a2a66,roughness:.35}),Math.cos(i*.7)*.28*(i%3?1:.3),.62+(i>5?.2:0),Math.sin(i*.7)*.28*(i%3?1:.3));}
+  gcyl(g2,.05,.05,.4,wood,.55,.8,0);
+  obstacles.push([2.8,-2.5,.6]);makeHot("b2",g2,1.2);
+  /* b3 蔬菜攤 */
+  var g3=holder(-3.4,0,1.8,.4);
+  gbox(g3,1.6,.7,.9,wood,0,.35,0);
+  for(var j=0;j<8;j++){gsph(g3,.2,M(j%2?0x3aa04a:0x6ac060),-.6+(j%4)*.4,.85,j<4?-.2:.2,1,.8,1);}
+  gcyl(g3,.04,.04,1.0,wood,-.7,1.2,-.4);gcyl(g3,.04,.04,1.0,wood,.7,1.2,-.4);gbox(g3,1.6,.1,.1,M(0xd9482f),0,1.7,-.4);
+  obstacles.push([-3.4,1.8,.9]);makeHot("b3",g3,1.5);
+  /* b4 芥菜袋 */
+  var g4=holder(3.4,0,2.0,-.3);
+  gsph(g4,.5,M(0xc9b88a),0,.5,0,1,1.1,.9);gcyl(g4,.18,.22,.14,M(0x8a7a50),0,1.12,0);
+  for(var k=0;k<4;k++){gsph(g4,.07,M(0xd8a85a),.3+k*.12,.2,.5,1.8,.7,.7);}
+  for(var m=0;m<5;m++){gsph(g4,.2,M(0x3f9a3a),Math.cos(m*1.3)*.2,1.3+m*.04,Math.sin(m*1.3)*.2,1,.5,1);}
+  obstacles.push([3.4,2.0,.7]);makeHot("b4",g4,1.9);
+  buildDoor(1);
+}
+
+/* ---------- 房間 C:江海閣 ---------- */
+function buildC(){
+  shell("#1b4f78","#103a5a","#2a6f8f","#235d7c","#0c2a40");
+  var rock=M(0x6f8791),glass=new T.MeshStandardMaterial({color:0xbfe6ff,transparent:true,opacity:.55,roughness:.05,metalness:.1});
+  var river=new T.Mesh(new T.PlaneGeometry(1.4,9),new T.MeshStandardMaterial({color:0x2a9fd6,emissive:0x0f4f80,roughness:.2}));river.rotation.x=-Math.PI/2;add(river,0,.03,0);
+  for(var i=-4;i<=4;i+=2){sph(.28,rock,-.95,.1,i,1,.5,1);sph(.28,rock,.95,.1,i+.6,1,.5,1);}
+  torch(-4.5,3,-3,0x80c8ff,.9);torch(4.5,3,-3,0x80c8ff,.9);torch(-4.5,3,3,0x80c8ff,.8);torch(4.5,3,3,0x80c8ff,.8);
+  var wv=new T.Mesh(new T.PlaneGeometry(8,.9),new T.MeshBasicMaterial({map:textTex("海河鱗羽潛翔 海河鱗羽潛翔",900,100,"#8fd8ff","#0d3556",64),transparent:false}));add(wv,0,3.3,4.93).rotation.y=Math.PI;
+  /* c1 藍海地球儀 */
+  var g1=holder(-3.2,0,-2.6);
+  gcyl(g1,.12,.3,.9,M(0x8a6a3a),0,.45,0);gcyl(g1,.45,.45,.06,M(0xd9a520,{metalness:.7}),0,.9,0);
+  gsph(g1,.62,new T.MeshStandardMaterial({color:0x1f7fd0,emissive:0x0a3f7a,roughness:.3}),0,1.6,0);
+  gsph(g1,.2,M(0x4a9a52),.3,1.8,.35,1.4,.6,1);gsph(g1,.18,M(0x4a9a52),-.4,1.4,.3,1,.7,1);
+  obstacles.push([-3.2,-2.6,.7]);makeHot("c1",g1,1.0);
+  /* c2 白開水壺 */
+  var g2=holder(3.2,0,-2.6);
+  gbox(g2,1.1,.8,.8,M(0x8a6a3a),0,.4,0);
+  gsph(g2,.42,glass,0,1.2,0,1,1.15,1);gcyl(g2,.14,.18,.25,glass,0,1.78,0);
+  gsph(g2,.3,new T.MeshStandardMaterial({color:0x9fdfff,emissive:0x2a7fb0,roughness:.2}),0,1.1,0,1,1,1);
+  obstacles.push([3.2,-2.6,.7]);makeHot("c2",g2,2.1);
+  /* c3 銀魚飾 */
+  var g3=holder(-3.1,2.5,1.8);
+  var fm=new T.MeshStandardMaterial({color:0xcfd8e0,metalness:.8,roughness:.25});
+  [[0,0,0],[.5,-.5,.4],[-.4,-.9,-.3]].forEach(function(p,i){
+    var f=new T.Group();f.position.set(p[0],p[1],p[2]);f.rotation.y=i*.8;
+    var body=new T.Mesh(new T.SphereGeometry(.28,16,12),fm);body.scale.set(1.6,.8,.5);f.add(body);
+    var tail=new T.Mesh(new T.ConeGeometry(.16,.3,3),fm);tail.rotation.z=Math.PI/2;tail.position.x=-.55;f.add(tail);
+    var eye=new T.Mesh(new T.SphereGeometry(.04,8,8),new T.MeshBasicMaterial({color:0x111111}));eye.position.set(.3,.05,.12);f.add(eye);
+    g3.add(f);
+  });
+  var rope=new T.Mesh(new T.CylinderGeometry(.015,.015,1.6,6),M(0x2a2a2a));rope.position.set(0,1.0,0);g3.add(rope);
+  g3.position.y=2.0;g3.userData.fy=2.0;
+  makeHot("c3",g3,1.2);
+  /* c4 棲木小鳥 */
+  var g4=holder(3.3,0,2.2);
+  gcyl(g4,.04,.04,1.6,M(0x6b4423),0,.8,0);gbox(g4,.8,.05,.06,M(0x6b4423),0,1.6,0);
+  var bm=new T.MeshStandardMaterial({color:0xf0b830,roughness:.6});
+  gsph(g4,.22,bm,0,1.85,0,1.2,1,.9);gsph(g4,.13,bm,.25,2.05,0);
+  var cone=new T.Mesh(new T.ConeGeometry(.05,.14,8),M(0xe07020));cone.rotation.z=-Math.PI/2;cone.position.set(.42,2.05,0);g4.add(cone);
+  gbox(g4,.4,.03,.18,new T.MeshStandardMaterial({color:0x3aa8d8}),-.05,1.85,.2);gbox(g4,.4,.03,.18,new T.MeshStandardMaterial({color:0x3aa8d8}),-.05,1.85,-.2);
+  gbox(g4,.04,.4,.02,M(0xf0e0b0),-.3,1.8,0);
+  obstacles.push([3.3,2.2,.5]);makeHot("c4",g4,.9);
+  buildDoor(2);
+}
+
+/* ---------- 房間 D:對仗寶庫 ---------- */
+var chestRoot=null,chestLid=null,chestOpen=false;
+function buildD(){
+  shell("#3a2a1a","#6a4a18","#c9a23a","#1c1408","#150f08");
+  var gold=M(0xe0b030,{metalness:.8,roughness:.25}),dk=M(0x2a1c10),st=M(0x7c6a50);
+  torch(-4.4,3,-4,0xffc060,1.1);torch(4.4,3,-4,0xffc060,1.1);torch(-4.4,3,4,0xffc060,1);torch(4.4,3,4,0xffc060,1);
+  var rug=new T.Mesh(new T.PlaneGeometry(3,8),new T.MeshStandardMaterial({color:0x7a1f1a,roughness:1}));rug.rotation.x=-Math.PI/2;add(rug,0,.02,0);
+  /* d1 天地石柱 */
+  var g1=holder(-3,0,-2.2,.5);
+  gbox(g1,.9,3,.5,st,-.8,1.5,0);gbox(g1,.9,3,.5,st,.8,1.5,0);
+  var t1=new T.Mesh(new T.PlaneGeometry(.8,1.6),new T.MeshBasicMaterial({map:textTex("天高",150,300,"#e8c35a","#2a1c10",90,true)}));inHolder(g1,t1,-.8,1.7,.27);
+  var t2=new T.Mesh(new T.PlaneGeometry(.8,1.6),new T.MeshBasicMaterial({map:textTex("地？",150,300,"#e8c35a","#2a1c10",90,true)}));inHolder(g1,t2,.8,1.7,.27);
+  obstacles.push([-3,-2.2,1.2]);makeHot("d1",g1,3.5);
+  /* d2 日月轉盤 */
+  var g2=holder(3,0,-2.2,-.5);
+  gcyl(g2,.12,.12,1.4,dk,0,.7,0);
+  var disc=new T.Mesh(new T.CylinderGeometry(.9,.9,.1,32),M(0xf0c040,{metalness:.5,roughness:.4,emissive:0x5a3a00}));disc.rotation.x=Math.PI/2;inHolder(g2,disc,0,1.8,0);
+  gsph(g2,.3,new T.MeshBasicMaterial({color:0xffd23a}),-.35,2.0,.12);gsph(g2,.25,new T.MeshBasicMaterial({color:0xe8f0ff}),.4,1.6,.12);
+  obstacles.push([3,-2.2,.9]);makeHot("d2",g2,1.3);
+  /* d3 書桌 */
+  var g3=holder(3.4,0,2.6,-.4);
+  gbox(g3,1.8,.1,.9,M(0x6b4423),0,.8,0);[[-.8,-.35],[.8,-.35],[-.8,.35],[.8,.35]].forEach(function(p){gbox(g3,.08,.8,.08,M(0x4a2e18),p[0],.4,p[1]);});
+  gbox(g3,.9,.02,.5,M(0xf2ead0),0,.87,0);gcyl(g3,.02,.02,.4,dk,.5,.95,.1);
+  obstacles.push([3.4,2.6,1.0]);makeHot("d3",g3,1.2);
+  /* d4 大會考石碑 */
+  var g4=holder(-3.4,0,3.0,.6);
+  gbox(g4,1.3,2.5,.3,st,0,1.25,0);gbox(g4,1.5,.15,.4,gold,0,2.55,0);
+  var t4=new T.Mesh(new T.PlaneGeometry(1.0,1.6),new T.MeshBasicMaterial({map:textTex("大會考",150,240,"#e8c35a","#2a1c10",70,true)}));inHolder(g4,t4,0,1.3,.17);
+  obstacles.push([-3.4,3.0,1.0]);makeHot("d4",g4,2.9);
+  /* 大寶箱 */
+  var gc=holder(0,0,-3.9);
+  gbox(gc,2,.9,1.1,M(0x6b4423),0,.45,0);gbox(gc,.16,.95,1.14,gold,-.7,.48,0);gbox(gc,.16,.95,1.14,gold,.7,.48,0);gbox(gc,2.04,.12,1.14,gold,0,.9,0);
+  var lid=new T.Group();lid.position.set(0,.9,-.55);gc.add(lid);
+  var lb=new T.Mesh(new T.BoxGeometry(2,.4,1.1),M(0x7a5030));lb.position.set(0,.2,.55);lid.add(lb);
+  var lg=new T.Mesh(new T.BoxGeometry(2.04,.1,1.14),gold);lg.position.set(0,.3,.55);lid.add(lg);
+  chestLid=lid;chestRoot=gc;
+  obstacles.push([0,-3.9,1.3]);makeHot("chest",gc,1.6,6);
+  if(chestOpen){lid.rotation.x=-1.3;}
+  sign("寶庫",1.8,.6,"#f2b632","#14262e",100,0,3.2,-4.9,0);
+}
+var BUILD=[buildA,buildB,buildC,buildD];
+
+/* ---------- 隱藏銅錢 ---------- */
+function buildCoins(r){
+  S.found=S.found||{};
+  KFACT[r].forEach(function(k,i){
+    var id="k"+r+"_"+i;if(S.found[id]){return;}
+    var g=new T.Group();g.position.set(k.p[0],k.p[1],k.p[2]);
+    var disc=new T.Mesh(new T.CylinderGeometry(.2,.2,.05,24),new T.MeshStandardMaterial({color:0xffd24a,emissive:0xb07800,metalness:.8,roughness:.3}));disc.rotation.x=Math.PI/2;g.add(disc);
+    var hole=new T.Mesh(new T.BoxGeometry(.09,.09,.07),new T.MeshBasicMaterial({color:0x1a1208}));g.add(hole);
+    group.add(g);g.userData.hot=id;g.userData.dist=3.8;hotRoots.push(g);hot[id]={root:g,id:id,f:k.f};spins.push(g);
+  });
+}
+function collectCoin(id){
+  var h=hot[id];if(!h){return;}
+  group.remove(h.root);hotRoots=hotRoots.filter(function(x){return x!==h.root;});spins=spins.filter(function(x){return x!==h.root;});delete hot[id];
+  S.found[id]=true;addCoins(3);save();beep("ok");
+  toast("<b>找到銅錢!+3</b><br>小知識:"+h.f,6500);
+}
+function coinCount(){var n=0;for(var k in (S.found||{})){if(S.found[k]){n++;}}return n;}
+
+/* ---------- 載入房間 ---------- */
+function loadRoom(r,fresh){
+  if(group){scene.remove(group);}
+  group=new T.Group();scene.add(group);
+  hotRoots=[];hot={};markers=[];flickers=[];obstacles=[];doorParts=null;anim=[];spins=[];chestOpen=false;
+  scene.fog=new T.Fog(0x0b1720,8,18);scene.background=new T.Color(0x0b1720);
+  group.add(new T.AmbientLight(0xaabbcc,r===3?.85:.55));
+  group.add(new T.HemisphereLight(0xbcd8ff,0x2a2018,.35));
+  BUILD[r]();
+  buildCoins(r);
+  camera.position.set(0,1.6,3.6);yaw=0;pitch=0;
+  var rm=ROOMS[r];
+  $("roomN").textContent=rm.name;$("roomS").textContent=rm.sub;
+  hudSlots();
+  toast("<b>小墨:</b>"+rm.story,6500);
+}
+function hudSlots(){
+  var rm=ROOMS[S.room],os=roomObjs(S.room),h='<span class="lab">字靈</span>';
+  os.forEach(function(o,i){var ok=L(o.id).ok;h+='<span class="slot'+(ok?" on":"")+'">'+(ok?o.key:"？")+'</span>';});
+  $("slots").innerHTML=h;
+  $("coinN").textContent=S.coins;
+  $("mute").textContent="音效 "+(S.muted?"關":"開");
+}
+function addCoins(n){S.coins+=n;$("coinN").textContent=S.coins;var c=$("coins");c.classList.remove("bump");void c.offsetWidth;c.classList.add("bump");}
+
+/* ================= 操作 ================= */
+var keys={},modalOpen=false;
+var KEYMAP={KeyW:"f",ArrowUp:"f",KeyS:"b",ArrowDown:"b",KeyA:"sl",KeyD:"sr",ArrowLeft:"tl",ArrowRight:"tr",KeyQ:"tl",KeyE:"tr"};
+window.addEventListener("keydown",function(e){
+  if(modalOpen){return;}
+  var k=KEYMAP[e.code];if(k){keys[k]=true;e.preventDefault();}
+});
+window.addEventListener("keyup",function(e){var k=KEYMAP[e.code];if(k){keys[k]=false;}});
+window.addEventListener("blur",function(){keys={};});
+var pads=document.querySelectorAll("#pad button");
+for(var pi=0;pi<pads.length;pi++){(function(b){
+  var k=b.getAttribute("data-k");
+  b.addEventListener("pointerdown",function(e){e.preventDefault();keys[k]=true;try{b.setPointerCapture(e.pointerId);}catch(x){}});
+  b.addEventListener("pointerup",function(){keys[k]=false;});
+  b.addEventListener("pointercancel",function(){keys[k]=false;});
+  b.addEventListener("lostpointercapture",function(){keys[k]=false;});
+})(pads[pi]);}
+
+var drag=null;
+canvas.addEventListener("pointerdown",function(e){
+  if(modalOpen){return;}
+  drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,t:performance.now(),moved:0};
+  canvas.classList.add("drag");try{canvas.setPointerCapture(e.pointerId);}catch(x){}
+  $("help").style.opacity=0;
+});
+canvas.addEventListener("pointermove",function(e){
+  if(drag){
+    var dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+    drag.moved+=Math.abs(dx)+Math.abs(dy);
+    yaw-=dx*.0042;pitch-=dy*.0036;pitch=Math.max(-1.1,Math.min(1.1,pitch));
+    return;
+  }
+  if(modalOpen){return;}
+  var id=pick(e.clientX,e.clientY),tip=$("tip");
+  if(id){
+    var o=objById(id),nm=id==="door"?"大門("+ROOMS[S.room].name+")":id==="chest"?"大寶箱":id.charAt(0)==="k"?"銅錢(撿起來)":o.name+(L(id).ok?" ✓":"");
+    tip.textContent=nm;tip.hidden=false;tip.style.left=e.clientX+"px";tip.style.top=e.clientY+"px";canvas.classList.add("hot");
+  }else{tip.hidden=true;canvas.classList.remove("hot");}
+});
+canvas.addEventListener("pointerup",function(e){
+  if(!drag){return;}
+  var d=drag;drag=null;canvas.classList.remove("drag");
+  if(d.moved<8&&performance.now()-d.t<600){var id=pick(e.clientX,e.clientY);if(id){interact(id);}}
+});
+canvas.addEventListener("pointerleave",function(){$("tip").hidden=true;});
+
+var ray=new T.Raycaster(),v2=new T.Vector2();
+function pick(x,y){
+  v2.set(x/window.innerWidth*2-1,-(y/window.innerHeight)*2+1);
+  ray.setFromCamera(v2,camera);
+  var hits=ray.intersectObjects(hotRoots,true);
+  for(var i=0;i<hits.length;i++){
+    var o=hits[i].object;
+    while(o&&!(o.userData&&o.userData.hot)){o=o.parent;}
+    if(o){return o.userData.hot;}
+  }
+  return null;
+}
+function objById(id){for(var i=0;i<OBJS.length;i++){if(OBJS[i].id===id){return OBJS[i];}}return null;}
+
+function interact(id){
+  var h=hot[id];if(!h){return;}
+  var wp=new T.Vector3();h.root.updateMatrixWorld(true);h.root.getWorldPosition(wp);
+  var dx=wp.x-camera.position.x,dz=wp.z-camera.position.z;
+  if(Math.sqrt(dx*dx+dz*dz)>h.root.userData.dist){toast("再<b>走近一點</b>!按 W 或 ▲ 往前走。",2600);return;}
+  if(id.charAt(0)==="k"){collectCoin(id);}
+  else if(id==="door"){openDoor();}
+  else if(id==="chest"){openChest();}
+  else{var o=objById(id);if(o){openObj(o);}}
+}
+
+var last=performance.now(),tAcc=0;
+function frame(now){
+  requestAnimationFrame(frame);
+  var dt=Math.min(.05,(now-last)/1000);last=now;tAcc+=dt;
+  if(!modalOpen){
+    var sp=2.8*dt,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+    var mx=0,mz=0;
+    if(keys.f){mx+=fx;mz+=fz;}if(keys.b){mx-=fx;mz-=fz;}if(keys.sl){mx-=rx;mz-=rz;}if(keys.sr){mx+=rx;mz+=rz;}
+    if(keys.tl){yaw+=1.6*dt;}if(keys.tr){yaw-=1.6*dt;}
+    var px=camera.position.x+mx*sp,pz=camera.position.z+mz*sp;
+    px=Math.max(-4.3,Math.min(4.3,px));pz=Math.max(-4.3,Math.min(4.3,pz));
+    for(var i=0;i<obstacles.length;i++){
+      var o=obstacles[i],ddx=px-o[0],ddz=pz-o[1],d=Math.sqrt(ddx*ddx+ddz*ddz);
+      if(d<o[2]+.3){var k=(o[2]+.3)/(d||.001);px=o[0]+ddx*k;pz=o[1]+ddz*k;}
+    }
+    camera.position.x=px;camera.position.z=pz;
+  }
+  camera.rotation.set(pitch,yaw,0);
+  markers.forEach(function(m){m.m.position.y=m.y+Math.sin(tAcc*2+m.p)*.07;m.m.rotation.y+=dt*1.6;});
+  flickers.forEach(function(f){f.l.intensity=f.b*(.82+.18*Math.sin(tAcc*9+f.p)*Math.sin(tAcc*5.3+f.p));});
+  spins.forEach(function(g){g.rotation.y+=dt*2.4;});
+  if(hot.c3){var g=hot.c3.root;g.rotation.y+=dt*.4;g.position.y=(g.userData.fy||2)+Math.sin(tAcc*1.3)*.05;}
+  for(var a=anim.length-1;a>=0;a--){if(anim[a].run(dt)){anim.splice(a,1);}}
+  renderer.render(scene,camera);
+}
+
+/* ================= 面板 ================= */
+var mcard=$("mcard");
+function showModal(html){modalOpen=true;keys={};$("modal").hidden=false;mcard.innerHTML=html;mcard.scrollTop=0;$("tip").hidden=true;}
+function hideModal(){modalOpen=false;$("modal").hidden=true;mcard.innerHTML="";hudSlots();if(pendingFx){var id=pendingFx;pendingFx=null;celebrate(id);}}
+function celebrate(id){
+  var h=hot[id],o=objById(id);if(!h||!o){return;}
+  var p=new T.Vector3();h.root.updateMatrixWorld(true);h.root.getWorldPosition(p);p.y=Math.max(p.y+1.3,1.6);
+  var sp=new T.Sprite(new T.SpriteMaterial({map:textTex(o.key,128,128,"#ffd24a",null,110),transparent:true,depthTest:false}));
+  sp.scale.set(.9,.9,.9);sp.position.copy(p);group.add(sp);
+  var n=48,pos=new Float32Array(n*3),vel=[];
+  for(var i=0;i<n;i++){pos[i*3]=p.x;pos[i*3+1]=p.y;pos[i*3+2]=p.z;vel.push([(Math.random()-.5)*2.4,Math.random()*2.2,(Math.random()-.5)*2.4]);}
+  var geo=new T.BufferGeometry();geo.setAttribute("position",new T.BufferAttribute(pos,3));
+  var pts=new T.Points(geo,new T.PointsMaterial({color:0xffd24a,size:.1,transparent:true,depthTest:false}));group.add(pts);
+  var mk=h.marker;
+  anim.push({t:0,run:function(dt){
+    this.t+=dt;var k=Math.min(1,this.t/2.4);
+    sp.position.y=p.y+k*.9;sp.material.opacity=1-k*k;var s=.9+Math.sin(k*3.1)*.5;sp.scale.set(s,s,s);
+    for(var i=0;i<n;i++){vel[i][1]-=2.2*dt;pos[i*3]+=vel[i][0]*dt;pos[i*3+1]+=vel[i][1]*dt;pos[i*3+2]+=vel[i][2]*dt;}
+    geo.attributes.position.needsUpdate=true;pts.material.opacity=1-k;
+    if(k>=1){group.remove(sp);group.remove(pts);return true;}return false;}});
+}
+function enterKey(input,fn){input.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229){e.preventDefault();fn();}});}
+function shakeCard(){mcard.classList.remove("shake");void mcard.offsetWidth;mcard.classList.add("shake");}
+function bad(fb,msg){fb.className="fb bad";fb.textContent=msg;beep("bad");shakeCard();}
+function mk(html){var d=document.createElement("div");d.innerHTML=html;return d.firstChild;}
+function closeBtn(label,fn){var b=document.createElement("button");b.type="button";b.className="btn gold";b.textContent=label||"收好 →";b.onclick=fn||hideModal;return b;}
+function teacherGhost(host,fn){var b=document.createElement("button");b.type="button";b.className="ghost";b.textContent="老師確認通過";b.onclick=fn;host.appendChild(b);}
+function setMarkerDone(id){var h=hot[id];if(h&&h.marker){h.marker.material.color.set(0x52d1a5);}}
+
+function openObj(o){
+  if(o.kind==="創作"){return openCreate(o);}
+  if(o.kind==="大會考"){return openQuiz(o);}
+  var lg=L(o.id);
+  if(lg.ok){return showDone(o);}
+  puzzleStage(o);
+}
+function showDone(o){
+  var ln=o.line>=0?LINES[o.line]:null;
+  showModal('<div class="tag">'+o.name+'</div><div class="res"><b class="ok">已經解開了 ✓</b><br>字靈:<b>'+o.key+'</b>'+(ln?'<br>'+ln.t+':'+ln.meaning:'<br>'+(o.after||""))+'</div><div class="row" id="rw"></div>');
+  $("rw").appendChild(closeBtn("好",hideModal));
+}
+function puzzleStage(o){
+  var lg=L(o.id);
+  showModal('<div class="tag">'+o.name+'・'+o.kind+'</div><div class="big">'+o.show+'</div><p class="ask">'+o.ask+'</p>'+
+    '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打出答案"><button class="btn" id="go" type="button">解開</button></div>'+
+    '<div class="fb" id="fb"></div><div id="hb"></div><div class="tray" id="tray" hidden></div><div class="row" id="tb"><button class="ghost" id="hintBtn" type="button">給我一點線索</button><button class="ghost" id="leave" type="button">先離開</button></div>');
+  var input=$("ans"),fb=$("fb");
+  function hint(){if(!$("hb").children.length){lg.hint++;save();}$("hb").innerHTML='<div class="hint">線索:'+o.hint+'</div>';}
+  $("hintBtn").onclick=hint;$("leave").onclick=hideModal;if(lg.hint){hint();}
+  function tray(){
+    var t=$("tray");if(!t.hidden||o.answers[0].length!==1){return;}
+    var opts=[o.answers[0]];
+    shuffle(POOL.split("")).forEach(function(c){if(opts.length<4&&opts.indexOf(c)<0&&o.answers.indexOf(c)<0){opts.push(c);}});
+    shuffle(opts);t.innerHTML="";
+    opts.forEach(function(c){var b=document.createElement("button");b.type="button";b.textContent=c;b.onclick=function(){input.value=c;input.focus();};t.appendChild(b);});
+    t.hidden=false;
+  }
+  function pass(teacher){
+    if(teacher){lg.teacher=(lg.teacher||0)+1;}
+    lg.solved=true;beep("ok");
+    var next=function(){
+      if(o.explain){explainStage(o,teacher);}
+      else{finishObj(o,Math.max(5,(lg.wrong?8:12)-(lg.hint?2:0)),o.after);}
+    };
+    if(o.rad&&!lg.radDone){radStage(o,next);}else{next();}
+  }
+  function submit(){
+    var v=norm(input.value);if(!v){return;}
+    var hit=o.answers.filter(function(a){return v.indexOf(a)>-1;})[0];
+    if(hit){pass(false);return;}
+    lg.wrong++;save();
+    bad(fb,lg.wrong===1?"差一點!再想想看。":lg.wrong===2?"看看線索,慢慢來!":"字庫出現了,也可以直接打字喔!");
+    hint();if(lg.wrong>=3){tray();}
+    if(lg.wrong>=2&&!$("tb").querySelector(".tg")){var sp=document.createElement("span");sp.className="tg";$("tb").appendChild(sp);teacherGhost(sp,function(){pass(true);});}
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function explainStage(o){
+  var lg=L(o.id),ln=LINES[o.line];
+  var big=ln.t.split("").map(function(c){return c===o.key?"<em>"+c+"</em>":c;}).join("");
+  var chips="";ln.chars.forEach(function(ch){chips+='<div class="chip2"><span class="e">'+ch.e+'</span><b>'+ch.c+'</b>'+ch.m+'</div>';});
+  showModal('<div class="tag">字靈現身・'+o.key+'</div><div class="big">'+big+'</div><div class="chips">'+chips+'</div>'+
+    '<p class="ask">看完每個字的意思,用你自己的話說說:<b>'+ln.t+'</b>是什麼意思?</p>'+
+    '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打出你的說法"><button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div class="row" id="tb"></div>');
+  var input=$("ans"),fb=$("fb");
+  function pass(teacher){if(teacher){lg.teacherExp=(lg.teacherExp||0)+1;}finishObj(o,lg.wrongExp?10:14,"<b>"+ln.t+":</b>"+ln.meaning);}
+  function submit(){
+    var v=norm(input.value);if(!v){return;}lg.text=input.value.trim();
+    var miss=null;
+    for(var k=0;k<ln.kw.length&&!miss;k++){var ok=ln.kw[k].any.some(function(w){return v.indexOf(w)>-1;});if(!ok){miss=ln.kw[k];}}
+    if(hanLen(v)>=4&&!miss){pass(false);return;}
+    lg.wrongExp=(lg.wrongExp||0)+1;save();
+    bad(fb,hanLen(v)<4?"再多說一點點,至少一句話喔!":"快對了!提示:"+miss.q);
+    if(lg.wrongExp>=2&&!$("tb").children.length){teacherGhost($("tb"),function(){pass(true);});}
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function radStage(o,next){
+  var lg=L(o.id),r=RAD[o.rad];
+  showModal('<div class="tag">部首小百科・'+r.n+'</div><div class="big">'+o.key+'</div><p class="ask">答對了!你發現這個字有 <b>'+r.n+'</b>。<br>有'+r.n+'的字(像:'+r.ex+'),大多和<b>什麼</b>有關?請打一個字。</p>'+
+   '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打一個字"><button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div class="row" id="tb"></div>');
+  var input=$("ans"),fb=$("fb"),w=0;
+  function done(win){
+    lg.radDone=true;lg.radOk=!!win;save();
+    if(win){addCoins(4);beep("ok");}
+    showModal('<div class="tag">部首小百科</div><div class="res"><b class="ok">'+(win?"答對了!+4 銅錢":"沒關係,記起來就好!")+'</b><br>'+r.say+'<br><span class="small">以後看到「'+r.n+'」,就可以猜到字義和這個主題有關。</span><div class="row" id="rw"></div></div>');
+    $("rw").appendChild(closeBtn("繼續 →",next));
+  }
+  function submit(){
+    var v=norm(input.value);if(!v){return;}
+    if(r.ans.some(function(a){return v.indexOf(a)>-1;})){done(w===0);return;}
+    w++;
+    if(w===1){bad(fb,"再想想!看看這幾個字:"+r.ex+"。它們都在講什麼?");}
+    else{bad(fb,"答案是這個主題:"+r.say.replace(/^.*?(多半和)/,"").replace(/有關。$/,""));setTimeout(function(){done(false);},1600);}
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function finishObj(o,pts,msg){
+  var lg=L(o.id);
+  if(!lg.ok){lg.ok=true;addCoins(pts);setMarkerDone(o.id);pendingFx=o.id;}
+  save();hudSlots();beep("ok");
+  var left=roomObjs(o.room).filter(function(x){return !L(x.id).ok;}).length;
+  var tail=o.room===3?(left?"還有 "+left+" 個機關。":"三個機關都解開了!去打開大寶箱吧。"):(left?"還有 "+left+" 個字靈。":"四個字靈都找到了!去大門輸入密碼吧。");
+  showModal('<div class="center"><div class="stamp">字靈 '+o.key+'</div></div><div class="res"><b class="ok">過關!+'+pts+' 銅錢</b><br>'+(msg||"")+(o.explain===false?'<br><span class="small">這個字靈是「'+LINES[o.line].t+'」的一部分,另一個藏在這個房間的別處。</span>':"")+(o.explain&&LINES[o.line].fun?'<br><span class="small">小知識:'+LINES[o.line].fun+'</span>':(o.fun?'<br><span class="small">小知識:'+o.fun+'</span>':""))+'<br>'+tail+'<div class="row" id="rw"></div></div>');
+  $("rw").appendChild(closeBtn("收好字靈 →",hideModal));
+}
+function openCreate(o){
+  var lg=L(o.id);
+  if(lg.ok){return showDone2(o);}
+  showModal('<div class="tag">書桌・創作</div><div class="big">＿＿＿＿</div><p class="ask">換你當千字文作家!寫出你自己的四字對句,像「海鹹河淡」「天高地厚」。<b>前兩個字</b>和<b>後兩個字</b>要像在對對碰。</p>'+
+   '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" maxlength="8" placeholder="打出四個字"><button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div class="row"><button class="ghost" id="leave" type="button">先離開</button></div>');
+  var input=$("ans"),fb=$("fb");$("leave").onclick=hideModal;
+  function submit(){
+    var v=norm(input.value);if(!v){return;}
+    if(hanLen(v)!==4||v.length!==4){lg.wrong++;save();bad(fb,"要剛好四個字喔,像「天高地厚」。");return;}
+    lg.text=v;
+    finishObj(o,20,"你的作品:<b style='font-size:24px;letter-spacing:.14em'>"+esc(v)+"</b><br>"+esc(v[0])+" ↔ "+esc(v[2])+"、"+esc(v[1])+" ↔ "+esc(v[3])+"<br><span class='small'>請念給老師聽,說說哪兩個字是一對。</span>");
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function showDone2(o){var lg=L(o.id);showModal('<div class="tag">書桌</div><div class="res"><b class="ok">已完成 ✓</b><br>你的作品:<b style="font-size:24px;letter-spacing:.14em">'+esc(lg.text||"")+'</b><div class="row" id="rw"></div></div>');$("rw").appendChild(closeBtn("好",hideModal));}
+
+function openQuiz(o){
+  var lg=L(o.id);
+  if(lg.ok){showModal('<div class="tag">大會考石碑</div><div class="res"><b class="ok">已完成 ✓</b><br>成績:'+(lg.score||0)+' / '+QUIZ.length+' 題一次答對<div class="row" id="rw"></div></div>');$("rw").appendChild(closeBtn("好",hideModal));return;}
+  var qi=0,score=0;
+  function step(){
+    if(qi>=QUIZ.length){lg.score=score;finishObj(o,score*4+6,"大會考成績:<b>"+score+" / "+QUIZ.length+"</b> 題一次答對");return;}
+    var q=QUIZ[qi],w=0;
+    showModal('<div class="tag">字靈大會考 '+(qi+1)+' / '+QUIZ.length+'</div><div class="big">'+q.show+'</div><p class="ask">句子的意思:<b>'+q.m+'</b><br><span class="small">缺的字是哪一個?</span></p>'+
+     '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打出缺的字"><button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div id="hb"></div><div class="tray" id="tray" hidden></div><div class="row" id="tb"><button class="ghost" id="leave" type="button">先離開</button></div>');
+    var input=$("ans"),fb=$("fb");$("leave").onclick=hideModal;
+    function next(){qi++;step();}
+    function submit(){
+      var v=norm(input.value);if(!v){return;}
+      if(q.answers.some(function(a){return v.indexOf(a)>-1;})){
+        if(w===0){score++;}beep("ok");fb.className="fb good";fb.textContent=w===0?"一次答對!":"答對了!";
+        $("go").disabled=true;input.disabled=true;setTimeout(next,900);return;
+      }
+      w++;
+      if(w===1){bad(fb,"再想想!");$("hb").innerHTML='<div class="hint">線索:'+q.hint+'</div>';}
+      else if(w===2){bad(fb,"字庫出現了,也可以直接打字喔!");var t=$("tray");t.innerHTML="";var opts=[q.answers[0]];shuffle(POOL.split("")).forEach(function(c){if(opts.length<4&&opts.indexOf(c)<0&&q.answers.indexOf(c)<0){opts.push(c);}});shuffle(opts).forEach(function(c){var b=document.createElement("button");b.type="button";b.textContent=c;b.onclick=function(){input.value=c;input.focus();};t.appendChild(b);});t.hidden=false;}
+      else{bad(fb,"正確答案是「"+q.answers[0]+"」,記起來再往下!");$("go").disabled=true;input.disabled=true;setTimeout(next,2200);}
+    }
+    $("go").onclick=submit;enterKey(input,submit);input.focus();
+  }
+  step();
+}
+
+/* ---------- 圖鑑 ---------- */
+function openDex(){
+  var h='<div class="tag">字靈圖鑑</div><h2 class="t">已經認識的句子</h2><div class="lines" style="font-size:16px">';
+  var n=0;
+  LINES.forEach(function(ln,i){
+    var ok=OBJS.some(function(o){return o.explain&&o.line===i&&L(o.id).ok;});
+    if(ok){n++;h+='<p style="font-size:24px;margin-bottom:0">'+ln.t+'</p><div style="font-size:15px;letter-spacing:0;font-weight:400;line-height:1.5;margin-bottom:8px">'+ln.meaning+'<br><span class="small">小知識:'+ln.fun+'</span></div>';}
+    else{h+='<p style="font-size:24px;color:#8aa09a">？？？？</p><div class="small" style="margin-bottom:8px;letter-spacing:0;font-weight:400">還沒解開</div>';}
+  });
+  h+='</div><p class="small">已認識 '+n+' / 8 句 ・ 找到銅錢 '+coinCount()+' / 12</p><div class="row" id="rw"></div>';
+  showModal(h);$("rw").appendChild(closeBtn("關閉",hideModal));
+}
+$("dex").onclick=function(){if(!modalOpen){openDex();}};
+
+/* ---------- 門 ---------- */
+function openDoor(){
+  var r=S.room,rm=ROOMS[r];
+  if(r===3){toast("這裡是寶庫最深處,去打開<b>大寶箱</b>!",3000);return;}
+  if(S["open"+r]){return goNext();}
+  var os=roomObjs(r),got=os.filter(function(o){return L(o.id).ok;}).length;
+  if(got<os.length){toast("門鎖上有四個空格。還有 <b>"+(os.length-got)+"</b> 個字靈沒找到!",3400);return;}
+  var lines="";rm.doorLines.forEach(function(s){lines+="<p>"+s+"</p>";});
+  var tiles=shuffle(os.map(function(o){return o.key;}));
+  showModal('<div class="tag">'+rm.name+'・大門</div><h2 class="t">把字靈放回句子裡</h2><div class="lines">'+lines+'</div>'+
+   '<p class="ask">門上的句子缺了 '+os.length+' 個字。照<b>句子出現的順序</b>,把字靈打在下面,門就會打開。</p>'+
+   '<div class="tray" id="tray"></div><div class="ans" style="margin-top:10px"><input class="t" id="ans" type="text" autocomplete="off" maxlength="8" placeholder="打出 '+os.length+' 個字"><button class="btn" id="go" type="button">開門</button></div><div class="fb" id="fb"></div><div class="row" id="tb"><button class="ghost" id="leave" type="button">先離開</button></div>');
+  var input=$("ans"),fb=$("fb"),tr=$("tray"),lg=L("door"+r);
+  tiles.forEach(function(c){var b=document.createElement("button");b.type="button";b.textContent=c;b.onclick=function(){input.value+=c;input.focus();};tr.appendChild(b);});
+  $("leave").onclick=hideModal;
+  function open(teacher){
+    if(teacher){lg.teacher=(lg.teacher||0)+1;}
+    lg.ok=true;S["open"+r]=true;save();addCoins(10);beep("ok");hideModal();
+    setDoorOpen(true,false);toast("<b>門開了!</b>再點一下大門,就能走進去。",3000);
+  }
+  function submit(){
+    var v=norm(input.value);if(!v){return;}
+    if(v===rm.code){open(false);return;}
+    lg.wrong=(lg.wrong||0)+1;save();
+    bad(fb,"順序不對喔,再看看句子裡誰先出現。");
+    if(lg.wrong>=2&&!$("tb").querySelector(".tg")){var sp=document.createElement("span");sp.className="tg";$("tb").appendChild(sp);teacherGhost(sp,function(){open(true);});}
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function goNext(){
+  fade(function(){S.room=Math.min(3,S.room+1);save();loadRoom(S.room);});
+}
+function fade(cb){var f=$("fade");f.classList.add("on");setTimeout(function(){cb();setTimeout(function(){f.classList.remove("on");},250);},650);}
+
+/* ---------- 大寶箱 / 結局 ---------- */
+function openChest(){
+  if(!roomDone(3)){var left=roomObjs(3).filter(function(o){return !L(o.id).ok;}).length;toast("寶箱的鎖還有 <b>"+left+"</b> 個機關沒解開!",3200);return;}
+  if(!chestOpen){
+    chestOpen=true;S.won=true;save();beep("ok");
+    anim.push({t:0,run:function(dt){this.t+=dt;var k=Math.min(1,this.t/1.4);chestLid.rotation.x=-1.3*k;return k>=1;}});
+    var l=new T.PointLight(0xffe080,2.5,9);l.position.set(0,1.6,-3.6);group.add(l);flickers.push({l:l,b:2.5,p:1});
+  }
+  setTimeout(victory,900);
+}
+function victory(){
+  showModal('<div class="center"><div class="stamp">寶庫守護者</div></div><h2 class="t center" style="margin-top:16px">通關!</h2><p class="ask center">大寶箱打開了,八句千字文的字靈全部自由!<br>一共收集了 <b>'+S.coins+'</b> 枚銅錢。</p><div class="row" style="justify-content:center" id="rw"></div><div class="fb good center" id="fb"></div>');
+  var b=document.createElement("button");b.type="button";b.className="btn gold";b.textContent="複製上課紀錄";b.onclick=function(){copyReport($("fb"));};$("rw").appendChild(b);
+  $("rw").appendChild(closeBtn("繼續逛逛",hideModal));
+}
+
+/* ---------- 紀錄 ---------- */
+function sh(t,n){t=String(t||"");return t.length>n?t.slice(0,n)+"…":t;}
+function report(){
+  var d=new Date(),out=["【軒瑀 國文 本次實際完成｜"+(d.getMonth()+1)+"/"+d.getDate()+"】","千字文密室逃脫(3D 密室,第三關、第四關、終關)"];
+  var undone=[];
+  for(var r=0;r<3;r++){
+    out.push("");out.push(ROOMS[r].name+"("+ROOMS[r].sub+")");
+    roomObjs(r).forEach(function(o){
+      var lg=S.log[o.id];
+      if(lg&&lg.ok){
+        var line="・"+o.name+"("+o.kind+"):"+o.key+(lg.wrong?" 錯"+lg.wrong+"次":" 一次過")+(o.rad?(lg.radOk?";部首✓":";部首未答對"):"");
+        if(o.explain&&lg.text){line+=";說「"+LINES[o.line].t+"」:「"+sh(lg.text,26)+"」";}
+        out.push(line);
+      }else{out.push("・"+o.name+":未完成");undone.push(o.name);}
+    });
+    out.push("・大門密碼:"+(S["open"+r]?"✓":"未開"));
+  }
+  out.push("");out.push("終關・對仗寶庫");
+  roomObjs(3).forEach(function(o){
+    var lg=S.log[o.id];
+    if(lg&&lg.ok){out.push("・"+o.name+":"+(o.kind==="創作"?"「"+(lg.text||"")+"」":o.kind==="大會考"?"大會考 "+(lg.score||0)+" / "+QUIZ.length+" 題一次答對":o.show.replace("＿",o.key)));}
+    else{out.push("・"+o.name+":未完成");undone.push(o.name);}
+  });
+  out.push("・大寶箱:"+(S.won?"✓ 通關":"未開"));
+  out.push("");out.push("尋寶銅錢找到 "+coinCount()+" / 12");out.push("銅錢:"+S.coins);
+  if(undone.length){out.push("未完成(不算已教):"+undone.join("、"));}
+  out.push("※只記錄實際完成的部分");
+  return out.join("\n").slice(0,1900);
+}
+function copyReport(fb){
+  var txt=report();
+  var ok=function(){if(fb){fb.className="fb good";fb.textContent="已複製,貼到 Discord 就可以了";}};
+  var fail=function(){if(fb){fb.className="fb";fb.textContent="複製失敗,請到「老師」面板手動複製";}showTeacher(txt);};
+  try{navigator.clipboard.writeText(txt).then(ok,fail);}catch(e){fail();}
+}
+function showTeacher(txt){
+  var was=modalOpen;
+  showModal('<div class="teach"><div class="tag">老師工具</div><div class="row" id="tr"></div><textarea id="rep" readonly></textarea><div class="row" id="rw"></div></div>');
+  function btn(l,fn,cls){var b=document.createElement("button");b.type="button";b.className="btn "+(cls||"alt");b.textContent=l;b.onclick=fn;$("tr").appendChild(b);return b;}
+  btn("本房全部通過",function(){roomObjs(S.room).forEach(function(o){var lg=L(o.id);if(!lg.ok){lg.ok=true;lg.skipped=true;setMarkerDone(o.id);}});save();hudSlots();hideModal();toast("本房機關已全部解開",2000);});
+  btn("直接開門去下一房",function(){if(S.room<3){S["open"+S.room]=true;save();hideModal();goNext();}});
+  btn("回上一房",function(){if(S.room>0){hideModal();fade(function(){S.room--;save();loadRoom(S.room);});}});
+  btn("複製上課紀錄",function(){var t=$("rep");t.value=report();t.select();try{navigator.clipboard.writeText(t.value);}catch(e){}});
+  var rs=false,rb=btn("重新開始",function(){if(!rs){rs=true;rb.textContent="再按一次確定";setTimeout(function(){rs=false;rb.textContent="重新開始";},3000);return;}S={room:0,coins:0,log:{},muted:S.muted};save();hideModal();fade(function(){loadRoom(0);});});
+  $("rep").value=txt||report();
+  $("rw").appendChild(closeBtn("關閉",hideModal));
+  if(txt){$("rep").focus();$("rep").select();}
+}
+$("tbtn").onclick=function(){if(!modalOpen){showTeacher();}};
+$("mute").onclick=function(){S.muted=!S.muted;save();hudSlots();};
+window.addEventListener("keydown",function(e){if(e.key==="Escape"&&modalOpen){hideModal();}});
+
+/* ---------- 開場 ---------- */
+function start(){
+  loadRoom(S.room);
+  $("boot").style.display="none";
+  requestAnimationFrame(frame);
+  setTimeout(function(){$("help").style.opacity=0;},12000);
+}
+var started=false;
+function go(){if(started){return;}started=true;start();}
+try{
+  var fp=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('900 60px "Noto Serif TC"','金玉劍珠'),document.fonts.load('400 16px "Noto Sans TC"','字')]):Promise.resolve();
+  fp.then(go,go);setTimeout(go,2500);
+}catch(e){go();}
+window.__vault={S:function(){return S;},interact:interact,openObj:openObj,report:report,cam:camera,hot:function(){return hot;}};
+})();
+</script>
