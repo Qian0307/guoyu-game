@@ -67,13 +67,14 @@ h2.t{font-family:var(--display);font-size:25px;margin:0 0 8px;text-wrap:balance}
 .small{font-size:15px;color:#3b5560}
 .ans{display:flex;gap:10px;flex-wrap:wrap}
 input.t{flex:1 1 180px;min-width:0;font:inherit;font-size:22px;padding:10px 14px;border:2px solid var(--slip-ink);border-radius:6px;background:#fff;color:var(--slip-ink)}
-input.t:disabled{background:#cfdacf;border-color:#8ea39a}
+textarea.t{flex:1 1 100%;min-width:0;font:inherit;font-size:20px;padding:10px 14px;border:2px solid var(--slip-ink);border-radius:6px;background:#fff;color:var(--slip-ink);resize:vertical;min-height:120px}
+input.t:disabled,textarea.t:disabled{background:#cfdacf;border-color:#8ea39a}
 .btn{font:inherit;font-weight:700;font-size:18px;background:var(--jade-deep);color:#fff;border:0;border-radius:6px;padding:11px 20px;cursor:pointer;box-shadow:0 3px 0 #0f4a3c}
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0f4a3c}
 .btn.alt{background:transparent;color:var(--slip-ink);border:2px solid var(--slip-ink);box-shadow:none}
 .btn.gold{background:var(--gold);color:#3a2800;box-shadow:0 3px 0 var(--gold-deep)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn:focus-visible,input:focus-visible,.mini:focus-visible,.tray button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,.mini:focus-visible,.tray button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
 .ghost{font:inherit;font-size:14px;background:none;border:0;color:#46636d;text-decoration:underline;cursor:pointer;padding:6px 2px}
 .hint{margin:10px 0 0;padding:8px 12px;background:#fff6d6;border-left:5px solid var(--gold);font-size:16px}
@@ -156,10 +157,25 @@ var ROOMS=[
   doorLines:["＿珍＿柰","＿重＿薑"],code:"果李菜芥",keys:["果","李","菜","芥"]},
  {name:"江海閣",sub:"第四關・果菜魚鳥(下)",story:"嘩啦啦!這裡有海、有河、有魚、有鳥。找出最後四個字靈。",
   doorLines:["＿鹹河＿","＿潛＿翔"],code:"海淡鱗羽",keys:["海","淡","鱗","羽"]},
- {name:"對仗寶庫",sub:"終關・對仗密碼",story:"寶庫最深處!解開對對碰的機關,打開大寶箱。",
-  doorLines:[],code:"",keys:["厚","落","作","考"]}
+ {name:"對仗寶庫",sub:"對仗密碼",story:"寶庫最深處!解開對對碰的機關,打開大寶箱。",
+  doorLines:[],code:"",keys:["厚","落","作","考"]},
+ {name:"成語村",sub:"成語故事",story:"寶箱底下的密道,通到一座古老的村子。每間小屋都藏著一個成語故事,聽懂故事,字靈才會現身。",
+  doorLines:["畫蛇添＿","守株待＿","掩耳盜＿","亡羊補＿"],code:"足兔鈴牢",keys:["足","兔","鈴","牢"],bg:0x1a0e0a,amb:.8},
+ {name:"修辭魔法屋",sub:"句子魔法",story:"這間屋子裡的東西都會說話!學會句子的魔法:譬喻、擬人、五感和擴句,字靈才會出來。",
+  doorLines:["月亮＿一艘小船","把花草當成＿來寫","五種感＿的描寫","把短句子變＿"],code:"像人覺長",keys:["像","人","覺","長"],bg:0x120c24,amb:.8},
+ {name:"作家塔",sub:"字詞偵探和小作家",story:"最後一座塔!這裡住著愛寫作的字靈。解開四個機關,打開大寶箱,你就是小作家了。",
+  doorLines:[],code:"",keys:["量","反","偵","寫"],bg:0x140e08,amb:.8}
 ];
 
+var SIM=["像","彷彿","宛如","如同","一樣","似的","般"];
+var SUBJ=["太陽","風","花","月亮","小草","雲","星星","樹","雨","小河","海","小鳥"];
+var HUM=["笑","哭","跳","跑","走","睡","醒","起床","招手","打招呼","說","唱","躲","捉迷藏","抱","親","摸","伸","探","喊","玩","害羞","生氣","高興","開心","歡迎","迎接","擁抱","休息","上班","下班","聊天","講","偷看","眨眼","微笑","點頭","搖頭","問","回答","幫","穿","戴","吃","喝","散步","跳舞","彎腰","鞠躬","握手","想","夢","呼吸","嘆","擦","洗","梳","蓋","披"];
+var SENSE=["酸","香","黃","圓","涼","冰","硬","滑","軟","甜","苦","澀","清","亮","紅","綠","臭","吵","熱","暖","脆","嫩","鮮","淡","鹹"];
+var IDM=["畫蛇添足","守株待兔","掩耳盜鈴","亡羊補牢"];
+function hasAny(v,list){for(var i=0;i<list.length;i++){if(v.indexOf(list[i])>-1){return true;}}return false;}
+function idiomW(idm){return {t:"write",tag:"造句",show:idm,ask:"請用成語「"+idm+"」造一個句子。",tip:"句子裡要有「"+idm+"」,至少 8 個字。想一想你看過或做過的事。",chk:function(raw,v){if(v.indexOf(idm)<0){return "句子裡要有「"+idm+"」這個成語喔!";}if(hanLen(v)<8){return "再多寫一點,至少 8 個字。";}return "";}};}
+function expandW(base,must,need){return {t:"write",tag:"擴句",show:base,ask:"請把「"+base+"」擴寫成更長、更生動的句子。",tip:"想想:誰?什麼樣的?在哪裡?怎麼做?原本的詞要留著喔。",chk:function(raw,v){for(var i=0;i<must.length;i++){if(v.indexOf(must[i])<0){return "要保留「"+must[i]+"」這個詞喔!";}}if(hanLen(v)-hanLen(base)<need){return "再多加幾個字,讓畫面更清楚!";}return "";}};}
+function idiomStory(o){return {t:"card",tag:"成語小劇場",big:o.idm,html:"<p class='ask'><b>故事:</b>"+o.story+"</p><p class='ask'><b>意思:</b>"+o.mean+"</p><p class='small'>例:"+o.ex+"</p>"};}
 var OBJS=[
  {id:"a1",room:0,name:"黃金寶箱",line:0,key:"金",kind:"謎語",show:"＿",ask:"寶箱上刻著一道謎語:<br><b>「閃閃發亮的貴重金屬,第一名的獎牌就是它。」</b><br>請打出這個字。",hint:"國王的王冠、第一名的獎牌,都是這個顏色。",answers:["金"],explain:true},
  {id:"a2",room:0,name:"玉璧台座",line:1,key:"玉",kind:"組字",show:"王 ＋ 丶 ＝ ？",ask:"台座上有一個「王」字,偷偷多了一點,變成漂亮的寶石。請打出這個字。",hint:"翡翠手鐲、玉山的「玉」。",answers:["玉"],explain:true},
@@ -176,7 +192,77 @@ var OBJS=[
  {id:"d1",room:3,name:"天地石柱",line:-1,key:"厚",kind:"對對碰",show:"天高地＿",ask:"兩根石柱在對對碰!天很高,大地很___?",hint:"「厚」:厚厚的書、厚厚的外套。",answers:["厚","遠","廣","闊"],after:"天高地厚:天很高,大地很厚。"},
  {id:"d2",room:3,name:"日月轉盤",line:-1,key:"落",kind:"對對碰",show:"日升月＿",ask:"太陽升起來,月亮就會…?",hint:"太陽「升」,月亮反過來。",answers:["落","沉","降"],after:"日升月落:太陽升起,月亮落下。"},
  {id:"d3",room:3,name:"書桌",line:-1,key:"作",kind:"創作"},
- {id:"d4",room:3,name:"字靈大會考石碑",line:-1,key:"考",kind:"大會考"}
+ {id:"d4",room:3,name:"字靈大會考石碑",line:-1,key:"考",kind:"大會考"},
+ {id:"e1",room:4,name:"畫蛇小攤",line:-1,key:"足",kind:"成語故事",idiom:"畫蛇添足",flow:true,after:"畫蛇添足:做了多餘的事,反而把事情弄壞了。",fun:"這個故事已經流傳兩千多年了。",
+  stages:[
+   {t:"fill",tag:"成語故事",show:"畫蛇添＿",ask:"從前有幾個人比賽畫蛇。有個人最快畫完,可是他看別人還沒畫好,就多畫了幾隻<b>腳</b>。成語「畫蛇添＿」,缺的字就是「腳」的意思。請打出這個字。",hint:"滿足、足球的「足」,也是「腳」的意思。",answers:["足","腳"],alt:{"腳":"意思對了!成語裡寫的是「足」,足球的足。"}},
+   idiomStory({idm:"畫蛇添足",story:"他把蛇畫好以後,又多畫了腳。別人說:「蛇本來就沒有腳,你畫的已經不是蛇了!」他就輸掉比賽。",mean:"做了多餘的事,反而把事情弄壞了。",ex:"這道菜已經很好吃了,你再加一大堆醬料,就是畫蛇添足。"}),
+   idiomW("畫蛇添足")]},
+ {id:"e2",room:4,name:"樹墩和兔子",line:-1,key:"兔",kind:"成語故事",idiom:"守株待兔",flow:true,after:"守株待兔:不努力,只想靠運氣得到好處。",fun:"這個故事出自一本很古老的書《韓非子》。",
+  stages:[
+   {t:"fill",tag:"成語故事",show:"守株待＿",ask:"有個農夫在田裡工作,看見一隻兔子撞在樹墩上,他輕輕鬆鬆就撿到一隻。從此他天天坐在樹墩旁,等著下一隻<b>長耳朵的動物</b>。成語「守株待＿」,請打出缺的字。",hint:"長耳朵、愛吃紅蘿蔔的小動物,兔子的「兔」。",answers:["兔"]},
+   idiomStory({idm:"守株待兔",story:"農夫從此不種田了,每天守在樹旁等兔子。結果兔子沒有再來,田地也荒掉了。",mean:"不努力,只想靠運氣得到好處。",ex:"想考一百分,卻不讀書,只等好運氣,就是守株待兔。"}),
+   idiomW("守株待兔")]},
+ {id:"e3",room:4,name:"大銅鈴",line:-1,key:"鈴",kind:"成語故事",idiom:"掩耳盜鈴",flow:true,after:"掩耳盜鈴:自己騙自己,以為別人也不知道。",fun:"古書裡原本寫成「掩耳盜鐘」,後來才變成鈴鐺的「鈴」。",
+  stages:[
+   {t:"fill",tag:"成語故事",show:"掩耳盜＿",ask:"有個小偷想偷一個大<b>鈴鐺</b>,可是他一碰,鈴鐺就會「叮噹叮噹」響。他想:「我把自己的耳朵搗住,就聽不到了,別人也聽不到!」成語「掩耳盜＿」,請打出缺的字。",hint:"門鈴、鈴鐺的「鈴」,左邊是金字旁。",answers:["鈴"]},
+   idiomStory({idm:"掩耳盜鈴",story:"可是鈴聲大家都聽得到,小偷一下子就被抓住了。",mean:"自己騙自己,以為只要自己看不到、聽不到,別人也不會知道。",ex:"考壞了就把考卷藏起來,以為媽媽不會知道,這是掩耳盜鈴。"}),
+   idiomW("掩耳盜鈴")]},
+ {id:"e4",room:4,name:"破洞羊圈",line:-1,key:"牢",kind:"成語故事",idiom:"亡羊補牢",flow:true,after:"亡羊補牢:出了錯趕快補救,還來得及。",fun:"「牢」本來是關牛羊的圈欄,後來才有監牢的意思。",
+  stages:[
+   {t:"fill",tag:"成語故事",show:"亡羊補＿",ask:"農夫的羊圈破了一個洞,跑掉了一隻羊。他趕快把洞補好,後來羊就再也沒丟過。「亡羊」是丟了羊,成語「亡羊補＿」,請打出關羊的圈欄那個字。",hint:"「牢」:監牢、牢固的牢,上面是寶蓋頭,下面是牛。",answers:["牢"]},
+   idiomStory({idm:"亡羊補牢",story:"鄰居曾經勸他趕快修籬笆,他沒有聽,隔天又丟了一隻羊。他這才趕快把洞補好。",mean:"出了錯以後趕快補救,還來得及,不算太晚。",ex:"作業寫錯了,趕快訂正,就是亡羊補牢。"}),
+   idiomW("亡羊補牢")]},
+ {id:"f1",room:5,name:"譬喻鏡",line:-1,key:"像",kind:"譬喻",flow:true,after:"譬喻:用「像」把兩樣東西連起來,說明它們有地方很像。",fun:"「他跑得像風一樣快」就是譬喻,平常說話裡到處都有。",
+  stages:[
+   {t:"fill",tag:"譬喻",show:"月亮＿小船",ask:"鏡子裡有一彎彎的月亮。大家常說:「月亮<b>像</b>小船。」把月亮比成小船,這種寫法叫做<b>譬喻</b>。連接兩樣東西的字是什麼?請打出這個字。",hint:"「弟弟跑得像風一樣快」裡的「像」。",answers:["像","彷彿","宛如","如同"]},
+   {t:"card",tag:"譬喻教室",big:"月亮像小船",html:"<p class='ask'>譬喻就是:把<b>兩樣不一樣的東西</b>,用「像」連起來,因為它們有一個地方<b>很像</b>。</p><p class='ask'>月亮(彎彎的)<b>像</b>小船(也是彎彎的)。</p><p class='small'>常用的連接字:像、好像、彷彿、一樣。</p>"},
+   {t:"write",tag:"寫譬喻",show:"月亮像＿",ask:"月亮有時圓圓的,有時彎彎的。請寫一句話,用「像」把<b>月亮</b>比成別的東西。",tip:"想想:它的形狀像什麼?顏色像什麼?",chk:function(raw,v){if(v.indexOf("月亮")<0){return "句子裡要寫到「月亮」喔!";}if(!hasAny(v,SIM)){return "要用「像」或「好像」把兩樣東西連起來喔!";}if(hanLen(v)<5){return "再多寫一點點。";}return "";}}]},
+ {id:"f2",room:5,name:"擬人樹",line:-1,key:"人",kind:"擬人",flow:true,after:"擬人:把東西當成人來寫,讓它做人會做的事。",fun:"「風兒在唱歌」「花兒在微笑」都是擬人。",
+  stages:[
+   {t:"card",tag:"樹爺爺的話",big:"擬人",html:"<p class='ask'>樹爺爺說:「你看,風在跟我玩捉迷藏,太陽公公對我笑呢!」</p><p class='ask'>風和太陽都不是人,可是作者讓它們<b>做人才會做的事</b>。這種寫法叫做<b>擬人</b>。</p>"},
+   {t:"fill",tag:"擬人",show:"擬＿",ask:"把風、花、太陽當成<b>人</b>來寫,叫做擬「＿」法。請打出缺的字。",hint:"不是動物,是你、我、他,都是這個字。",answers:["人"]},
+   {t:"write",tag:"寫擬人",show:"太陽公公…",ask:"請寫一句話,把<b>太陽、風、花、月亮</b>其中一個當成人來寫。",tip:"讓它做人才會做的事,例如:笑、跑、睡覺、招手、打招呼。",chk:function(raw,v){if(!hasAny(v,SUBJ)){return "句子裡要有太陽、風、花、月亮…其中一個喔!";}if(!hasAny(v,HUM)){return "再想想,要讓它做「人會做的事」,例如笑、跑、睡覺、招手。";}if(hanLen(v)<7){return "再多寫一點,至少 7 個字。";}return "";}}]},
+ {id:"f3",room:5,name:"五感香爐",line:-1,key:"覺",kind:"五感",flow:true,after:"五感:視覺、聽覺、嗅覺、味覺、觸覺,用感覺寫句子更生動。",fun:"舌頭嚐得出酸、甜、苦、鹹、鮮五種基本味道。",
+  stages:[
+   {t:"card",tag:"五感教室",big:"五感",html:"<p class='ask'>寫文章時,可以用五種感覺讓句子更生動:</p><p class='ask'>👀 視覺(看):紅紅的蘋果<br>👂 聽覺(聽):叮叮咚咚的雨聲<br>👃 嗅覺(聞):香香的飯菜<br>👅 味覺(嚐):酸酸的檸檬<br>✋ 觸覺(摸):冰冰涼涼的冰塊</p>"},
+   {t:"fill",tag:"五感",show:"觸＿",ask:"冰冰涼涼的冰塊,是用手摸到的感覺。眼睛看到的叫視覺,耳朵聽到的叫聽覺,手摸到的叫觸＿。請打出缺的字。",hint:"視覺、聽覺、嗅覺、味覺、觸覺,每個詞最後都是這個字。",answers:["覺"]},
+   {t:"write",tag:"寫感覺",show:"檸檬",ask:"請寫一句話描寫<b>檸檬</b>,要寫出你的感覺(顏色、味道、香味、摸起來的樣子)。",tip:"例:黃黃的、酸酸的、香香的。試試看用疊字!",chk:function(raw,v){if(v.indexOf("檸檬")<0){return "句子裡要寫到「檸檬」喔!";}if(!hasAny(v,SENSE)){return "再加上感覺的詞,像酸酸的、黃黃的、香香的。";}if(hanLen(v)<6){return "再多寫一點,至少 6 個字。";}return "";}}]},
+ {id:"f4",room:5,name:"擴句機",line:-1,key:"長",kind:"擴句",flow:true,after:"擴句:想想誰、什麼樣、在哪裡、做什麼,把短句子變長。",fun:"好作家都是從短句子一步一步加長的。",
+  stages:[
+   {t:"card",tag:"擴句教室",big:"擴句",html:"<p class='ask'>短句子可以越變越長。每次多回答一個問題:</p><p class='ask'><b>誰?</b> → <b>什麼樣的?</b> → <b>在哪裡?</b> → <b>做什麼?</b></p><p class='ask'>小狗跑 → 一隻黃色的小狗在公園裡開心地跑。</p>"},
+   {t:"fill",tag:"擴句",show:"把短句變＿",ask:"擴句就是把短句子越擴越＿。請打出缺的字(長短的長)。",hint:"跟「短」相反的字。",answers:["長"]},
+   expandW("小狗跑",["小狗","跑"],8),
+   expandW("花開了",["花","開"],8)]},
+ {id:"g1",room:6,name:"量詞書架",line:-1,key:"量",kind:"量詞",flow:true,after:"量詞:幫東西計算數量的字,像一條魚、一朵花、一張紙。",fun:"中文的量詞很多:一頭牛、一匹馬、一尾魚。",
+  stages:[
+   {t:"multi",tag:"量詞配對",items:[
+    {show:"一＿魚",ask:"魚用什麼量詞?",answers:["條","尾"],hint:"一＿河、一＿路,長長的東西。"},
+    {show:"一＿花",ask:"花用什麼量詞?",answers:["朵"],hint:"一＿雲、一＿花,軟軟的一團。"},
+    {show:"一＿紙",ask:"紙用什麼量詞?",answers:["張"],hint:"一＿桌子、一＿床、一＿紙。"},
+    {show:"一＿鳥",ask:"鳥用什麼量詞?",answers:["隻"],hint:"一＿貓、一＿狗、一＿鳥。"},
+    {show:"一＿書",ask:"書用什麼量詞?",answers:["本"],hint:"一＿書、一＿筆記。"}]},
+   {t:"fill",tag:"量詞",show:"＿詞",ask:"「條、朵、張、隻、本」這些幫東西計算數量的字,叫做＿詞。請打出缺的字(數量的量)。",hint:"數量、力量、重量的「量」。",answers:["量"]}]},
+ {id:"g2",room:6,name:"反義天平",line:-1,key:"反",kind:"反義詞",flow:true,after:"反義詞:意思相反的詞;近義詞:意思很像的詞。",fun:"千字文的對句,很多都是用反義詞排出來的,像升↔落、高↔低。",
+  stages:[
+   {t:"multi",tag:"天平配對",items:[
+    {show:"高 ↔ ＿",ask:"「高」的反義詞(意思相反)是?",answers:["矮","低"],hint:"姊姊很高,弟弟很…"},
+    {show:"快 ↔ ＿",ask:"「快」的反義詞是?",answers:["慢"],hint:"烏龜走得很…"},
+    {show:"輕 ↔ ＿",ask:"「輕」的反義詞是?",answers:["重"],hint:"羽毛很輕,石頭很…"},
+    {show:"亮 ↔ ＿",ask:"「亮」的反義詞是?",answers:["暗"],hint:"白天很亮,夜晚很…"},
+    {show:"高興 ≈ ＿心",ask:"意思很像的詞叫「近義詞」。「高興」的近義詞是「＿心」。",answers:["開"],hint:"開開心心的「開」。"}]},
+   {t:"fill",tag:"反義詞",show:"＿義詞",ask:"意思剛好相反的詞,叫做＿義詞。請打出缺的字。",hint:"反對、相反的「反」。",answers:["反"]}]},
+ {id:"g3",room:6,name:"錯字偵探桌",line:-1,key:"偵",kind:"錯字",flow:true,after:"錯字偵探:同音字要看句子的意思選對字,像在/再、已/以。",fun:"同音字很多,寫完文章要像偵探一樣再檢查一遍。",
+  stages:[
+   {t:"multi",tag:"抓錯字",items:[
+    {show:"弟弟再客廳玩。",ask:"這句話有一個<b>同音錯字</b>。「再」應該改成哪一個字?(在某個地方)",answers:["在"],hint:"在家、在學校、在哪裡的「在」。"},
+    {show:"先寫功課,明天在去玩。",ask:"這句話的「在」是錯字。表示「又、還要」,應該改成哪個字?",answers:["再"],hint:"再見、再來一次的「再」。"},
+    {show:"他以經吃飽了。",ask:"這句話的「以」是錯字。正確的詞是「＿經」,請打出正確的字。",answers:["已"],hint:"「已經」的第一個字。"}]},
+   {t:"fill",tag:"偵探",show:"＿探",ask:"找出錯字的人,像福爾摩斯一樣,是一位＿探。請打出缺的字。",hint:"「偵探」的第一個字,單人旁。",answers:["偵"]}]},
+ {id:"g4",room:6,name:"小作家書桌",line:-1,key:"寫",kind:"小作家",flow:true,after:"小作家:一段話 = 擴句 + 譬喻 + 成語。",fun:"一小段話,是從「句子」走向「文章」的第一步。",
+  stages:[
+   {t:"card",tag:"小作家公式",big:"三句話",html:"<p class='ask'>一小段話可以這樣寫:</p><p class='ask'>① 一句<b>擴句</b>(誰、什麼樣、在哪裡、做什麼)<br>② 一句<b>譬喻</b>(用「像」連起來)<br>③ 一個學過的<b>成語</b></p><p class='small'>成語可以用:畫蛇添足、守株待兔、掩耳盜鈴、亡羊補牢。</p>"},
+   {t:"write",long:true,tag:"小作家",ask:"請寫一小段話,說說<b>你今天做的一件事</b>(至少三句話)。裡面要有<b>一個學過的成語</b>和<b>一個譬喻</b>。",tip:"寫完請念給老師聽。",chk:function(raw,v){if(!hasAny(v,IDM)){return "要用一個學過的成語喔(畫蛇添足、守株待兔、掩耳盜鈴、亡羊補牢)。";}if(!hasAny(v,SIM)){return "還要有一個譬喻,用「像」連起來。";}if(hanLen(v)<30){return "再多寫幾句,至少 30 個字,三句話左右。";}if((raw.match(/[。！？!?]/g)||[]).length<2){return "請分成至少三句話,每句用「。」結尾。";}return "";}}]}
 ];
 var RAD={
  wang:{n:"王字旁(玉字旁)",ex:"珍、珠、球",ans:["玉","石","寶","珠"],say:"王字旁的字,多半和玉石、寶石有關。"},
@@ -197,15 +283,19 @@ var KFACT=[
  [{p:[-3.8,.95,3.6],f:"千字文一共有 1000 個不同的字,而且沒有一個字重複!"},{p:[4.0,.95,.2],f:"傳說寫千字文的周興嗣,一夜之間頭髮就變白了。"},{p:[0,.95,-3.2],f:"「天地玄黃」的「玄」是黑色:天是黑黑的,地是黃黃的。"}],
  [{p:[0,.95,-1.0],f:"「果」字像一棵樹上長著一顆顆果實。"},{p:[-1.4,.95,4.0],f:"有句話說「薑還是老的辣」,越老的薑越辣。"},{p:[1.6,.95,-4.0],f:"芥末的辣會衝上鼻子,不是辣舌頭,所以吃壽司會流眼淚。"}],
  [{p:[0,.95,-1.5],f:"海水平均每 1 公斤約有 35 公克的鹽,所以又鹹又苦。"},{p:[-4.0,.95,.2],f:"魚的鱗片上有一圈一圈的紋路,像樹的年輪,可以看出魚幾歲。"},{p:[4.0,.95,-.2],f:"鳥的羽毛有很多層,可以保暖,也可以幫助飛行。"}],
- [{p:[-4.0,.95,3.8],f:"「對仗」就是字數一樣、意思相對,像天對地、高對低。"},{p:[4.0,.95,-.5],f:"寫對句的小祕訣:先想「相反的字」,例如升↔落、高↔低。"},{p:[0,.95,.8],f:"千字文每四個字一句,而且兩句兩句押韻,所以唸起來像唱歌。"}]
+ [{p:[-4.0,.95,3.8],f:"「對仗」就是字數一樣、意思相對,像天對地、高對低。"},{p:[4.0,.95,-.5],f:"寫對句的小祕訣:先想「相反的字」,例如升↔落、高↔低。"},{p:[0,.95,.8],f:"千字文每四個字一句,而且兩句兩句押韻,所以唸起來像唱歌。"}],
+ [{p:[0,.95,-1.0],f:"成語大多是四個字,而且每個成語背後常常有一個小故事。"},{p:[-4.0,.95,-.6],f:"「守株待兔」的「株」,是露在地面上的樹墩。"},{p:[1.4,.95,4.0],f:"成語像故事的縮寫,一句話就能說一個大道理。"}],
+ [{p:[0,.95,-1.0],f:"「像、好像、彷彿、如同」都可以當譬喻的連接字。"},{p:[-4.0,.95,-.6],f:"疊字讓句子更好聽:紅紅的、甜甜的、軟軟的。"},{p:[1.4,.95,4.0],f:"寫作文時,譬喻和擬人一起用,畫面會更生動。"}],
+ [{p:[0,.95,-1.0],f:"量詞用錯會很奇怪:不能說「一條蘋果」,要說「一顆蘋果」。"},{p:[-4.0,.95,-.6],f:"檢查作文時,可以出聲唸一遍,耳朵會聽出錯字和不通順的地方。"},{p:[1.4,.95,4.0],f:"句子越寫越長,慢慢就會變成一段話、一篇文章。"}]
 ];
-var POOL="金玉水山河海天地日月花葉果菜魚鳥光夜號劍珠李薑芥淡鹹厚長深翔飛落晝草鱗羽";
+var KTOTAL=KFACT.reduce(function(a,b){return a+b.length;},0);
+var POOL="金玉水山河海天地日月花葉果菜魚鳥光夜號劍珠李薑芥淡鹹厚長深翔飛落晝草鱗羽足兔鈴牢像人覺量反偵寫條朵張隻本矮慢重暗在再已開";
 
 /* ================= 狀態 ================= */
 function loadS(){try{return JSON.parse(localStorage.getItem(STORE));}catch(e){return null;}}
 var S=loadS()||{room:0,coins:0,log:{},muted:false};
 S.log=S.log||{};
-if(typeof S.room!=="number"||S.room<0||S.room>3){S.room=0;}
+if(typeof S.room!=="number"||S.room<0||S.room>ROOMS.length-1){S.room=0;}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
 function L(id){return S.log[id]||(S.log[id]={wrong:0,hint:0,ok:false});}
 function roomObjs(r){return OBJS.filter(function(o){return o.room===r;});}
@@ -329,7 +419,7 @@ function buildDoor(roomIdx){
   gbox(g,.06,2.45,.1,gold,0,1.25,.07);
   [-.48,.48].forEach(function(x){for(var i=0;i<3;i++){gsph(g,.06,gold,x*1.45,.6+i*.7,.1);}});
   var gem=gsph(g,.12,new T.MeshBasicMaterial({color:0xd9482f}),0,1.2,.14);
-  sign(r.name,2.2,.7,"#f2b632","#14262e",110,0,3.05,-4.9,0);
+  sign(r.name,Math.max(2.2,(r.name.length*110+60)/180),.7,"#f2b632","#14262e",110,0,3.05,-4.9,0);
   var root=g;makeHot("door",root,3.55,5.6);
   doorParts={pl:pl,pr:pr,gem:gem,glow:glow,open:false};
   if(S["open"+roomIdx]){setDoorOpen(true,true);}
@@ -488,7 +578,12 @@ function buildD(){
   gbox(g4,1.3,2.5,.3,st,0,1.25,0);gbox(g4,1.5,.15,.4,gold,0,2.55,0);
   var t4=new T.Mesh(new T.PlaneGeometry(1.0,1.6),new T.MeshBasicMaterial({map:textTex("大會考",150,240,"#e8c35a","#2a1c10",70,true)}));inHolder(g4,t4,0,1.3,.17);
   obstacles.push([-3.4,3.0,1.0]);makeHot("d4",g4,2.9);
-  /* 大寶箱 */
+  makeChest();
+  sign("寶庫",1.8,.6,"#f2b632","#14262e",100,0,3.2,-4.9,0);
+}
+
+function makeChest(){
+  var gold=M(0xe0b030,{metalness:.8,roughness:.25});
   var gc=holder(0,0,-3.9);
   gbox(gc,2,.9,1.1,M(0x6b4423),0,.45,0);gbox(gc,.16,.95,1.14,gold,-.7,.48,0);gbox(gc,.16,.95,1.14,gold,.7,.48,0);gbox(gc,2.04,.12,1.14,gold,0,.9,0);
   var lid=new T.Group();lid.position.set(0,.9,-.55);gc.add(lid);
@@ -497,9 +592,183 @@ function buildD(){
   chestLid=lid;chestRoot=gc;
   obstacles.push([0,-3.9,1.3]);makeHot("chest",gc,1.6,6);
   if(chestOpen){lid.rotation.x=-1.3;}
-  sign("寶庫",1.8,.6,"#f2b632","#14262e",100,0,3.2,-4.9,0);
 }
-var BUILD=[buildA,buildB,buildC,buildD];
+function wordCube(g,txt,x,y,z,col){
+  gbox(g,.34,.34,.34,M(col),x,y,z);
+  var p=new T.Mesh(new T.PlaneGeometry(.3,.3),new T.MeshBasicMaterial({map:textTex(txt,100,100,"#ffffff",null,txt.length>1?44:70),transparent:true}));
+  inHolder(g,p,x,y,z+.18);
+}
+
+/* ---------- 房間 E:成語村 ---------- */
+function buildE(){
+  shell("#6b3a2a","#3e2014","#8a6a48","#7a5a3a","#2a1810");
+  var wood=M(0x7a4f2a),dk=M(0x2a1c10),skin=M(0xf0c8a0),white=M(0xf4f4f8,{roughness:.9});
+  [[-3,3.4,-1],[3,3.4,-1],[0,3.5,2]].forEach(function(p){
+    sph(.22,new T.MeshBasicMaterial({color:0xff5a3a}),p[0],p[1],p[2],1,1.2,1);
+    var l=new T.PointLight(0xff7a40,.9,8,1.6);l.position.set(p[0],p[1]-.2,p[2]);group.add(l);flickers.push({l:l,b:.9,p:Math.random()*10});
+  });
+  torch(-4.5,3,-3.5,0xff9050,.8);torch(4.5,3,-3.5,0xff9050,.8);torch(-4.5,3,3.5,0xff9050,.7);torch(4.5,3,3.5,0xff9050,.7);
+  var rug=new T.Mesh(new T.PlaneGeometry(2.6,8),new T.MeshStandardMaterial({color:0x8a2a1c,roughness:1}));rug.rotation.x=-Math.PI/2;add(rug,0,.02,0);
+  sign("成語",1.2,.6,"#f2b632","#6e1d14",90,-4.93,2.4,.5,Math.PI/2);
+  sign("故事",1.2,.6,"#f2b632","#6e1d14",90,4.93,2.4,.5,-Math.PI/2);
+  function sheep(g,x,z){
+    gsph(g,.22,white,x,.38,z,1.25,1,1);gsph(g,.11,M(0x2a2a2a),x+.3,.42,z);
+    [[-.12,-.08],[-.12,.08],[.12,-.08],[.12,.08]].forEach(function(l){gcyl(g,.025,.025,.22,M(0x2a2a2a),x+l[0],.11,z+l[1]);});
+  }
+  /* e1 畫蛇小攤 */
+  var g1=holder(-3,0,-2.6,.3);
+  gbox(g1,1.7,.12,1.1,M(0xd8c48a),0,.06,0);
+  var gm=M(0x3aa05a,{roughness:.5});
+  for(var i=0;i<10;i++){var rr=i>6?.1-(i-6)*.015:.11;gsph(g1,rr+.02,gm,-.65+i*.14,.2,Math.sin(i*.9)*.22);}
+  var hz=Math.sin(9*.9)*.22;
+  gsph(g1,.15,gm,.78,.21,hz,1.2,1,1);gsph(g1,.03,M(0x111111),.9,.28,hz-.07);gsph(g1,.03,M(0x111111),.9,.28,hz+.07);
+  gbox(g1,.12,.01,.02,M(0xd9282f),.98,.2,hz);
+  [[-.45,.08],[-.15,-.12],[.15,.14],[.4,-.05]].forEach(function(l){gcyl(g1,.03,.03,.34,M(0xd9482f),l[0],.17,l[1]);gsph(g1,.05,M(0xd9482f),l[0]+.03,.03,l[1],1.4,.5,1);});
+  obstacles.push([-3,-2.6,.9]);makeHot("e1",g1,.95);
+  /* e2 樹墩和兔子 */
+  var g2=holder(3,0,-2.6,-.3);
+  gcyl(g2,.45,.52,.6,M(0x7a4f2a),0,.3,0);gcyl(g2,.44,.44,.03,M(0xc9a070),0,.61,0);
+  gsph(g2,.24,white,.85,.22,.3,1.3,1,1);gsph(g2,.15,white,1.07,.3,.34);
+  gsph(g2,.05,white,1.04,.55,.3,.6,3,.6);gsph(g2,.05,white,1.12,.55,.38,.6,3,.6);gsph(g2,.025,M(0x111111),1.18,.33,.4);
+  var hoe=gcyl(g2,.025,.025,1.2,wood,-.75,.55,.2);hoe.rotation.z=.4;gbox(g2,.25,.06,.04,M(0x9aa5ad),-.98,1.08,.2);
+  obstacles.push([3,-2.6,.9]);makeHot("e2",g2,1.1);
+  /* e3 大銅鈴 */
+  var g3=holder(-3.3,0,1.8,.4);
+  gcyl(g3,.06,.06,1.9,wood,-.5,.95,0);gcyl(g3,.06,.06,1.9,wood,.5,.95,0);gbox(g3,1.2,.1,.1,wood,0,1.9,0);
+  var bellM=M(0xe0b030,{metalness:.8,roughness:.3});
+  gcyl(g3,.02,.02,.2,dk,0,1.78,0);gcyl(g3,.08,.3,.5,bellM,0,1.5,0);gsph(g3,.07,bellM,0,1.2,0);
+  gcyl(g3,.2,.24,.8,M(0x2a2a3a),1.0,.4,.1);gsph(g3,.2,skin,1.0,1.0,.1);
+  gsph(g3,.08,skin,.78,1.0,.1);gsph(g3,.08,skin,1.22,1.0,.1);
+  obstacles.push([-3.3,1.8,.8]);obstacles.push([-2.35,1.5,.4]);makeHot("e3",g3,2.2);
+  /* e4 破洞羊圈 */
+  var g4=holder(3.3,0,2.0,-.3),fm=M(0x8a5a2a);
+  [[-.8,-.6],[0,-.6],[.8,-.6],[-.8,.6],[0,.6],[.8,.6]].forEach(function(p){gcyl(g4,.045,.045,.9,fm,p[0],.45,p[1]);});
+  [.5,.8].forEach(function(y){
+    gbox(g4,1.7,.06,.05,fm,0,y,-.6);gbox(g4,1.7,.06,.05,fm,0,y,.6);gbox(g4,.05,.06,1.3,fm,-.8,y,0);gbox(g4,.05,.06,.5,fm,.8,y,-.35);
+  });
+  sheep(g4,-.25,-.05);sheep(g4,.25,.25);sheep(g4,1.35,.35);
+  gbox(g4,.6,.05,.14,M(0xb0803a),1.15,.03,-.1);gcyl(g4,.02,.02,.3,wood,.9,.15,-.3);gbox(g4,.14,.06,.06,M(0x9aa5ad),.9,.32,-.3);
+  obstacles.push([3.3,2.0,1.0]);makeHot("e4",g4,1.3);
+  buildDoor(4);
+}
+
+/* ---------- 房間 F:修辭魔法屋 ---------- */
+function moonTex(){
+  var c=mkCanvas(200,380),g=c.getContext("2d"),gr=g.createLinearGradient(0,0,0,380);
+  gr.addColorStop(0,"#0b1a3a");gr.addColorStop(1,"#3a5a9a");g.fillStyle=gr;g.fillRect(0,0,200,380);
+  for(var i=0;i<30;i++){g.fillStyle="rgba(255,255,220,"+(.4+Math.random()*.6)+")";g.fillRect(Math.random()*200,Math.random()*380,2,2);}
+  g.fillStyle="#ffe9a0";g.beginPath();g.arc(100,150,60,0,Math.PI*2);g.fill();
+  g.fillStyle="#1c315d";g.beginPath();g.arc(125,135,56,0,Math.PI*2);g.fill();
+  return ctex(c);
+}
+function buildF(){
+  shell("#3b2a62","#251a45","#4a3a7a","#3a2c66","#1a1230");
+  var gold=M(0xd9a520,{metalness:.7,roughness:.3}),dk=M(0x2a1c10),wood=M(0x6b4423),white=M(0xffffff);
+  var sm=new T.MeshBasicMaterial({color:0xfff2b0});
+  for(var i=0;i<28;i++){sph(.04+Math.random()*.03,sm,(Math.random()-.5)*8.4,3.85,(Math.random()-.5)*8.4);}
+  torch(-4.5,3,-3.5,0xb08aff,.9);torch(4.5,3,-3.5,0xb08aff,.9);torch(-4.5,3,3.5,0x80b0ff,.8);torch(4.5,3,3.5,0x80b0ff,.8);
+  var rug=new T.Mesh(new T.CircleGeometry(2.4,40),new T.MeshStandardMaterial({color:0x5a3a9a,roughness:1}));rug.rotation.x=-Math.PI/2;add(rug,0,.02,0);
+  /* f1 譬喻鏡 */
+  var g1=holder(-3,0,-2.6,.35);
+  gbox(g1,1.2,2.1,.1,gold,0,1.2,0);
+  inHolder(g1,new T.Mesh(new T.PlaneGeometry(.95,1.85),new T.MeshBasicMaterial({map:moonTex()})),0,1.2,.06);
+  gbox(g1,.2,.1,.5,dk,-.4,.05,0);gbox(g1,.2,.1,.5,dk,.4,.05,0);
+  obstacles.push([-3,-2.6,.8]);makeHot("f1",g1,2.5);
+  /* f2 擬人樹 */
+  var g2=holder(3,0,-2.6,-.35),bark=M(0x6b4a2a);
+  gcyl(g2,.28,.36,2.0,bark,0,1.0,0);
+  gsph(g2,.9,M(0x3a9a5a),0,2.6,0,1,.85,1);gsph(g2,.55,M(0x46aa66),.6,2.2,.2);gsph(g2,.55,M(0x46aa66),-.6,2.2,-.1);
+  gsph(g2,.07,white,-.11,1.5,.3);gsph(g2,.07,white,.11,1.5,.3);gsph(g2,.035,M(0x111111),-.11,1.5,.36);gsph(g2,.035,M(0x111111),.11,1.5,.36);
+  var mouth=new T.Mesh(new T.TorusGeometry(.1,.02,8,16,Math.PI),M(0x3a1a10));mouth.rotation.z=Math.PI;inHolder(g2,mouth,0,1.3,.33);
+  gsph(g2,.05,M(0xff9aaa),-.2,1.35,.28);gsph(g2,.05,M(0xff9aaa),.2,1.35,.28);
+  var a1=gcyl(g2,.04,.04,.7,bark,.5,1.4,.1);a1.rotation.z=-1.0;var a2=gcyl(g2,.04,.04,.7,bark,-.5,1.4,.1);a2.rotation.z=1.0;
+  gsph(g2,.1,M(0x46aa66),.8,1.7,.1);gsph(g2,.1,M(0x46aa66),-.8,1.7,.1);
+  obstacles.push([3,-2.6,.7]);makeHot("f2",g2,3.5);
+  /* f3 五感香爐 */
+  var g3=holder(-3.3,0,1.8,.4);
+  gcyl(g3,.5,.55,.6,wood,0,.3,0);
+  gcyl(g3,.38,.25,.3,M(0xc9a23a,{metalness:.7,roughness:.3}),0,.75,0);
+  var sk=new T.MeshBasicMaterial({color:0xe0e0ff,transparent:true,opacity:.3});
+  for(var s=0;s<6;s++){gsph(g3,.09+s*.025,sk,Math.sin(s)*.06,1.0+s*.14,Math.cos(s)*.06);}
+  var orb=new T.Group();orb.position.y=1.45;g3.add(orb);
+  [0xff5a5a,0x5aa0ff,0xc07aff,0xffd24a,0x5aff9a].forEach(function(c,k){var a=k*Math.PI*2/5;var o=new T.Mesh(new T.SphereGeometry(.09,12,10),new T.MeshBasicMaterial({color:c}));o.position.set(Math.cos(a)*.55,0,Math.sin(a)*.55);orb.add(o);});
+  anim.push({run:function(dt){orb.rotation.y+=dt*.8;return false;}});
+  var l3=new T.PointLight(0xc8a0ff,.8,5);l3.position.set(-3.3,1.6,1.8);group.add(l3);
+  obstacles.push([-3.3,1.8,.8]);makeHot("f3",g3,2.1);
+  /* f4 擴句機 */
+  var g4=holder(3.3,0,2.0,-.3);
+  gbox(g4,1.3,1.0,.8,M(0x5a6a88,{metalness:.5,roughness:.4}),0,.5,0);gbox(g4,1.9,.1,.5,M(0x222a38),0,1.05,0);
+  wordCube(g4,"小狗",-.6,1.27,0,0xc23a2a);wordCube(g4,"開心",0,1.27,0,0x2a7ac2);wordCube(g4,"跑",.6,1.27,0,0x3aa05a);
+  var t1=new T.Mesh(new T.TorusGeometry(.2,.05,8,16),gold);inHolder(g4,t1,-.35,.6,.42);
+  var t2=new T.Mesh(new T.TorusGeometry(.15,.05,8,16),gold);inHolder(g4,t2,.35,.7,.42);
+  anim.push({run:function(dt){t1.rotation.z+=dt;t2.rotation.z-=dt*1.2;return false;}});
+  gsph(g4,.07,new T.MeshBasicMaterial({color:0x5aff9a}),-.5,.95,.42);gsph(g4,.07,new T.MeshBasicMaterial({color:0xff5a5a}),.5,.95,.42);
+  obstacles.push([3.3,2.0,.9]);makeHot("f4",g4,1.7);
+  buildDoor(5);
+}
+
+/* ---------- 房間 G:作家塔 ---------- */
+function buildG(){
+  shell("#5a4430","#3a2a1c","#6a5238","#5a4430","#241a10");
+  var wood=M(0x6b4423),dk=M(0x2a1c10),gold=M(0xd9a520,{metalness:.7,roughness:.3}),cream=M(0xf6f0dc);
+  var bm=[0xc23a2a,0x2a7ac2,0x3aa05a,0xd9a520,0x7a3aa0,0x2a8a8a].map(function(c){return M(c);});
+  [-1,1].forEach(function(s){
+    for(var k=0;k<3;k++){
+      var zz=-1+k*1.7;
+      box(.5,3,1.5,wood,s*4.72,1.5,zz);
+      for(var r=0;r<5;r++){for(var b=0;b<6;b++){box(.18,.3+((b*7+r*3+k)%4)*.03,.18,bm[(b+r+k)%6],s*4.4,.4+r*.55,zz-.6+b*.22);}}
+    }
+  });
+  torch(-3.8,3,-3.8,0xffc070,.9);torch(3.8,3,-3.8,0xffc070,.9);torch(-3.8,3,3.8,0xffc070,.8);torch(3.8,3,3.8,0xffc070,.8);
+  var rug=new T.Mesh(new T.PlaneGeometry(3,8),new T.MeshStandardMaterial({color:0x2a4a7a,roughness:1}));rug.rotation.x=-Math.PI/2;add(rug,0,.02,0);
+  /* g1 量詞書架 */
+  var g1=holder(-3,0,-2.6,.35);
+  gbox(g1,.08,2.2,.4,wood,-.8,1.1,0);gbox(g1,.08,2.2,.4,wood,.8,1.1,0);gbox(g1,1.7,.08,.4,wood,0,2.2,0);
+  [.05,.8,1.5].forEach(function(y){gbox(g1,1.6,.06,.38,wood,0,y,0);});
+  gbox(g1,1.6,.02,.04,wood,0,1.1,-.19);
+  var fishM=M(0xff8a2a);gsph(g1,.14,fishM,-.45,.93,0,1.6,.8,.5);var tl=gcyl(g1,.001,.12,.2,fishM,-.7,.93,0);tl.rotation.z=Math.PI/2;
+  gcyl(g1,.06,.06,.2,M(0x2a5aa0),.35,.9,0);gcyl(g1,.01,.01,.3,M(0x3aa05a),.35,1.1,0);
+  for(var p=0;p<5;p++){var a=p*Math.PI*2/5;gsph(g1,.06,M(0xff6a9a),.35+Math.cos(a)*.08,1.28+Math.sin(a)*.08,0);}
+  gsph(g1,.04,M(0xffd24a),.35,1.28,0);
+  gbox(g1,.4,.02,.3,cream,-.4,.1,0);gbox(g1,.4,.02,.3,cream,-.4,.13,0).rotation.y=.2;gbox(g1,.4,.02,.3,cream,-.4,.16,0).rotation.y=-.15;
+  var bmat=M(0xf0b830);gsph(g1,.1,bmat,.4,1.62,0,1.2,1,1);gsph(g1,.06,bmat,.52,1.72,0);
+  var bk=gcyl(g1,.001,.03,.1,M(0xe07020),.6,1.72,0);bk.rotation.z=-Math.PI/2;
+  for(var q=0;q<6;q++){gbox(g1,.1,.35,.2,bm[q],-.55+q*.12,.27,0);}
+  obstacles.push([-3,-2.6,.85]);makeHot("g1",g1,2.5);
+  /* g2 反義天平 */
+  var g2=holder(3,0,-2.6,-.35);
+  gcyl(g2,.35,.4,.1,dk,0,.05,0);gcyl(g2,.04,.04,1.9,gold,0,1.0,0);gsph(g2,.07,gold,0,1.98,0);
+  var beam=gbox(g2,1.5,.05,.05,gold,0,1.95,0);beam.rotation.z=.15;
+  gcyl(g2,.01,.01,.65,dk,-.742,1.5,0);gcyl(g2,.3,.3,.04,gold,-.742,1.18,0);
+  gcyl(g2,.01,.01,.65,dk,.742,1.73,0);gcyl(g2,.3,.3,.04,gold,.742,1.41,0);
+  wordCube(g2,"高",-.742,1.37,0,0xc23a2a);wordCube(g2,"？",.742,1.6,0,0x2a7ac2);
+  obstacles.push([3,-2.6,.7]);makeHot("g2",g2,2.6);
+  /* g3 錯字偵探桌 */
+  var g3=holder(-3.3,0,1.8,.4);
+  gbox(g3,1.6,.08,.9,wood,0,.8,0);[[-.7,-.35],[.7,-.35],[-.7,.35],[.7,.35]].forEach(function(p){gbox(g3,.08,.8,.08,M(0x4a2e18),p[0],.4,p[1]);});
+  gbox(g3,.7,.01,.5,cream,-.2,.85,.05);
+  var pp=new T.Mesh(new T.PlaneGeometry(.6,.4),new T.MeshBasicMaterial({map:textTex("錯字?",120,80,"#c23a2a",null,50),transparent:true}));pp.rotation.x=-Math.PI/2;inHolder(g3,pp,-.2,.86,.05);
+  var ring=new T.Mesh(new T.TorusGeometry(.22,.035,10,28),gold);inHolder(g3,ring,.45,1.2,.1);
+  inHolder(g3,new T.Mesh(new T.CircleGeometry(.21,24),new T.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.35})),.45,1.2,.1);
+  var hd=gcyl(g3,.03,.03,.5,M(0x6b4423),.64,.9,.1);hd.rotation.z=.6;
+  gcyl(g3,.22,.26,.12,M(0x7a5a2a),-.7,.9,-.2);gcyl(g3,.34,.34,.02,M(0x7a5a2a),-.7,.85,-.2);
+  obstacles.push([-3.3,1.8,.9]);makeHot("g3",g3,1.9);
+  /* g4 小作家書桌 */
+  var g4=holder(3.4,0,2.2,-.4);
+  gbox(g4,1.8,.1,.9,wood,0,.8,0);[[-.8,-.35],[.8,-.35],[-.8,.35],[.8,.35]].forEach(function(p){gbox(g4,.08,.8,.08,M(0x4a2e18),p[0],.4,p[1]);});
+  gbox(g4,.4,.03,.5,cream,-.2,.88,0).rotation.z=.1;gbox(g4,.4,.03,.5,cream,.2,.88,0).rotation.z=-.1;
+  gcyl(g4,.07,.08,.12,dk,.6,.92,.2);gcyl(g4,.05,.05,.01,M(0x2a4aa0),.6,.99,.2);
+  var qu=gcyl(g4,.008,.008,.5,M(0xffffff),.65,1.15,.2);qu.rotation.z=.9;
+  gcyl(g4,.03,.03,.6,gold,-.7,1.1,-.2);gsph(g4,.15,new T.MeshBasicMaterial({color:0xffe9a0}),-.7,1.45,-.2);
+  var l4=new T.PointLight(0xffe0a0,.9,5);l4.position.set(2.83,1.5,1.74);group.add(l4);
+  obstacles.push([3.4,2.2,.95]);makeHot("g4",g4,1.8);
+  makeChest();
+  sign("作家塔",1.8,.6,"#f2b632","#14262e",100,0,3.2,-4.9,0);
+}
+var BUILD=[buildA,buildB,buildC,buildD,buildE,buildF,buildG];
+var LAST=6;
+function chestSaved(r){return r===6?!!S.chest6:(r===3&&(!!S.chest3||!!S.won));}
+
 
 /* ---------- 隱藏銅錢 ---------- */
 function buildCoins(r){
@@ -524,9 +793,9 @@ function coinCount(){var n=0;for(var k in (S.found||{})){if(S.found[k]){n++;}}re
 function loadRoom(r,fresh){
   if(group){scene.remove(group);}
   group=new T.Group();scene.add(group);
-  hotRoots=[];hot={};markers=[];flickers=[];obstacles=[];doorParts=null;anim=[];spins=[];chestOpen=false;
-  scene.fog=new T.Fog(0x0b1720,8,18);scene.background=new T.Color(0x0b1720);
-  group.add(new T.AmbientLight(0xaabbcc,r===3?.85:.55));
+  hotRoots=[];hot={};markers=[];flickers=[];obstacles=[];doorParts=null;anim=[];spins=[];chestOpen=chestSaved(r);
+  scene.fog=new T.Fog(ROOMS[r].bg||0x0b1720,8,18);scene.background=new T.Color(ROOMS[r].bg||0x0b1720);
+  group.add(new T.AmbientLight(0xaabbcc,ROOMS[r].amb||(r===3?.85:.55)));
   group.add(new T.HemisphereLight(0xbcd8ff,0x2a2018,.35));
   BUILD[r]();
   buildCoins(r);
@@ -683,11 +952,118 @@ function teacherGhost(host,fn){var b=document.createElement("button");b.type="bu
 function setMarkerDone(id){var h=hot[id];if(h&&h.marker){h.marker.material.color.set(0x52d1a5);}}
 
 function openObj(o){
+  if(o.flow){return openFlow(o);}
   if(o.kind==="創作"){return openCreate(o);}
   if(o.kind==="大會考"){return openQuiz(o);}
   var lg=L(o.id);
   if(lg.ok){return showDone(o);}
   puzzleStage(o);
+}
+
+/* ================= 流程機關(成語・修辭・字詞) ================= */
+function buildTray(t,answers,input){
+  if(!t.hidden||answers[0].length!==1){return;}
+  var opts=[answers[0]];
+  shuffle(POOL.split("")).forEach(function(c){if(opts.length<4&&opts.indexOf(c)<0&&answers.indexOf(c)<0){opts.push(c);}});
+  shuffle(opts);t.innerHTML="";
+  opts.forEach(function(c){var b=document.createElement("button");b.type="button";b.textContent=c;b.onclick=function(){input.value=c;input.focus();};t.appendChild(b);});
+  t.hidden=false;
+}
+function openFlow(o){
+  var lg=L(o.id);
+  if(lg.ok){return showDone(o);}
+  lg.si=lg.si||0;
+  flowStep(o);
+}
+function flowStep(o){
+  var lg=L(o.id),st=o.stages[lg.si];
+  if(!st){return flowFinish(o);}
+  var adv=function(){lg.si++;save();flowStep(o);};
+  if(st.t==="card"){return flowCard(o,st,adv);}
+  if(st.t==="fill"){return flowFill(o,st,adv);}
+  if(st.t==="multi"){return flowMulti(o,st,adv);}
+  if(st.t==="write"){return flowWrite(o,st,adv);}
+}
+function flowFinish(o){
+  var lg=L(o.id),pts=Math.max(8,18-(lg.wrong||0)*2);
+  var tx=(lg.texts||[]).filter(Boolean);
+  finishObj(o,pts,(o.after||"")+(tx.length?"<br><span class='small'>你寫的:"+tx.map(esc).join(" / ")+"</span>":""));
+}
+function flowCard(o,st,adv){
+  showModal('<div class="tag">'+o.name+'・'+st.tag+'</div>'+(st.big?'<div class="big">'+st.big+'</div>':'')+st.html+'<div class="row" id="rw"></div>');
+  var b=closeBtn("我記住了 →",adv);$("rw").appendChild(b);
+  var lv=document.createElement("button");lv.type="button";lv.className="ghost";lv.textContent="先離開";lv.onclick=hideModal;$("rw").appendChild(lv);
+}
+function flowFill(o,st,adv){
+  var lg=L(o.id),w=0,hinted=false;
+  showModal('<div class="tag">'+o.name+'・'+(st.tag||o.kind)+'</div><div class="big">'+st.show+'</div><p class="ask">'+st.ask+'</p>'+
+    '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打出答案"><button class="btn" id="go" type="button">解開</button></div>'+
+    '<div class="fb" id="fb"></div><div id="hb"></div><div class="tray" id="tray" hidden></div><div class="row" id="tb"><button class="ghost" id="hintBtn" type="button">給我一點線索</button><button class="ghost" id="leave" type="button">先離開</button></div>');
+  var input=$("ans"),fb=$("fb");
+  function hint(){if(!hinted){hinted=true;lg.hint=(lg.hint||0)+1;save();}$("hb").innerHTML='<div class="hint">線索:'+st.hint+'</div>';}
+  $("hintBtn").onclick=hint;$("leave").onclick=hideModal;
+  function pass(teacher,note){
+    if(teacher){lg.teacher=(lg.teacher||0)+1;}
+    beep("ok");fb.className="fb good";fb.textContent=note||"答對了!";
+    $("go").disabled=true;input.disabled=true;
+    setTimeout(function(){if(document.body.contains(input)){adv();}},note?1900:800);
+  }
+  function submit(){
+    var v=norm(input.value);if(!v){return;}
+    var hit=st.answers.filter(function(a){return v.indexOf(a)>-1;})[0];
+    if(hit){pass(false,(st.alt&&hit!==st.answers[0])?st.alt[hit]:"");return;}
+    w++;lg.wrong=(lg.wrong||0)+1;save();
+    bad(fb,w===1?"差一點!再想想看。":w===2?"看看線索,慢慢來!":"字庫出現了,也可以直接打字喔!");
+    hint();if(w>=3){buildTray($("tray"),st.answers,input);}
+    if(w>=2&&!$("tb").querySelector(".tg")){var sp=document.createElement("span");sp.className="tg";$("tb").appendChild(sp);teacherGhost(sp,function(){pass(true,"");});}
+  }
+  $("go").onclick=submit;enterKey(input,submit);input.focus();
+}
+function flowMulti(o,st,adv){
+  var lg=L(o.id),qi=0,N=st.items.length;
+  function step(){
+    if(qi>=N){return adv();}
+    var q=st.items[qi],w=0;
+    showModal('<div class="tag">'+o.name+'・'+(st.tag||"小測驗")+' '+(qi+1)+' / '+N+'</div><div class="big">'+q.show+'</div><p class="ask">'+q.ask+'</p>'+
+     '<div class="ans"><input class="t" id="ans" type="text" autocomplete="off" placeholder="打出答案"><button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div id="hb"></div><div class="tray" id="tray" hidden></div><div class="row" id="tb"><button class="ghost" id="leave" type="button">先離開</button></div>');
+    var input=$("ans"),fb=$("fb");$("leave").onclick=hideModal;
+    function next(){qi++;step();}
+    function later(ms){setTimeout(function(){if(document.body.contains(input)){next();}},ms);}
+    function submit(){
+      var v=norm(input.value);if(!v){return;}
+      if(q.answers.some(function(a){return v.indexOf(a)>-1;})){
+        beep("ok");fb.className="fb good";fb.textContent=w===0?"一次答對!":"答對了!";$("go").disabled=true;input.disabled=true;later(w===0?800:1000);return;
+      }
+      w++;lg.wrong=(lg.wrong||0)+1;save();
+      if(w===1){bad(fb,"再想想!");$("hb").innerHTML='<div class="hint">線索:'+q.hint+'</div>';}
+      else if(w===2){bad(fb,"字庫出現了,也可以直接打字喔!");buildTray($("tray"),q.answers,input);}
+      else{bad(fb,"正確答案是「"+q.answers[0]+"」,記起來再往下!");$("go").disabled=true;input.disabled=true;later(2200);}
+    }
+    $("go").onclick=submit;enterKey(input,submit);input.focus();
+  }
+  step();
+}
+function flowWrite(o,st,adv){
+  var lg=L(o.id),w=0;
+  showModal('<div class="tag">'+o.name+'・'+(st.tag||"造句")+'</div>'+(st.show?'<div class="big">'+st.show+'</div>':'')+'<p class="ask">'+st.ask+'</p>'+(st.tip?'<p class="small">'+st.tip+'</p>':'')+
+    '<div class="ans">'+(st.long?'<textarea class="t" id="ans" rows="4" placeholder="在這裡寫"></textarea>':'<input class="t" id="ans" type="text" autocomplete="off" placeholder="打出你的句子">')+'<button class="btn" id="go" type="button">送出</button></div><div class="fb" id="fb"></div><div class="row" id="tb"><button class="ghost" id="leave" type="button">先離開</button></div>');
+  var input=$("ans"),fb=$("fb");$("leave").onclick=hideModal;
+  function store(raw){lg.texts=lg.texts||[];lg.texts[lg.si]=raw;save();}
+  function pass(raw,teacher){
+    if(teacher){lg.teacher=(lg.teacher||0)+1;}
+    store(raw);beep("ok");fb.className="fb good";fb.textContent="寫得很好!";
+    $("go").disabled=true;input.disabled=true;
+    setTimeout(function(){if(document.body.contains(input)){adv();}},800);
+  }
+  function submit(){
+    var raw=input.value.trim(),v=norm(raw);if(!v){return;}
+    var msg=st.chk(raw,v);
+    if(!msg){pass(raw,false);return;}
+    w++;lg.wrong=(lg.wrong||0)+1;save();
+    bad(fb,msg);
+    if(w>=2&&!$("tb").querySelector(".tg")){var sp=document.createElement("span");sp.className="tg";$("tb").appendChild(sp);teacherGhost(sp,function(){pass(input.value.trim(),true);});}
+  }
+  $("go").onclick=submit;if(!st.long){enterKey(input,submit);}input.focus();
 }
 function showDone(o){
   var ln=o.line>=0?LINES[o.line]:null;
@@ -775,7 +1151,7 @@ function finishObj(o,pts,msg){
   if(!lg.ok){lg.ok=true;addCoins(pts);setMarkerDone(o.id);pendingFx=o.id;}
   save();hudSlots();beep("ok");
   var left=roomObjs(o.room).filter(function(x){return !L(x.id).ok;}).length;
-  var tail=o.room===3?(left?"還有 "+left+" 個機關。":"三個機關都解開了!去打開大寶箱吧。"):(left?"還有 "+left+" 個字靈。":"四個字靈都找到了!去大門輸入密碼吧。");
+  var tail=(o.room===3||o.room===6)?(left?"還有 "+left+" 個機關。":"機關都解開了!去打開大寶箱吧。"):(left?"還有 "+left+" 個字靈。":"四個字靈都找到了!去大門輸入密碼吧。");
   showModal('<div class="center"><div class="stamp">字靈 '+o.key+'</div></div><div class="res"><b class="ok">過關!+'+pts+' 銅錢</b><br>'+(msg||"")+(o.explain===false?'<br><span class="small">這個字靈是「'+LINES[o.line].t+'」的一部分,另一個藏在這個房間的別處。</span>':"")+(o.explain&&LINES[o.line].fun?'<br><span class="small">小知識:'+LINES[o.line].fun+'</span>':(o.fun?'<br><span class="small">小知識:'+o.fun+'</span>':""))+'<br>'+tail+'<div class="row" id="rw"></div></div>');
   $("rw").appendChild(closeBtn("收好字靈 →",hideModal));
 }
@@ -831,7 +1207,14 @@ function openDex(){
     if(ok){n++;h+='<p style="font-size:24px;margin-bottom:0">'+ln.t+'</p><div style="font-size:15px;letter-spacing:0;font-weight:400;line-height:1.5;margin-bottom:8px">'+ln.meaning+'<br><span class="small">小知識:'+ln.fun+'</span></div>';}
     else{h+='<p style="font-size:24px;color:#8aa09a">？？？？</p><div class="small" style="margin-bottom:8px;letter-spacing:0;font-weight:400">還沒解開</div>';}
   });
-  h+='</div><p class="small">已認識 '+n+' / 8 句 ・ 找到銅錢 '+coinCount()+' / 12</p><div class="row" id="rw"></div>';
+  h+='</div>';
+  var idm=OBJS.filter(function(o){return o.idiom;}),m=0;
+  h+='<h2 class="t" style="font-size:20px;margin-top:6px">成語故事</h2><div class="lines" style="font-size:16px">';
+  idm.forEach(function(o){
+    if(L(o.id).ok){m++;h+='<p style="font-size:24px;margin-bottom:0">'+o.idiom+'</p><div style="font-size:15px;letter-spacing:0;font-weight:400;line-height:1.5;margin-bottom:8px">'+o.after.split(":")[1]+'<br><span class="small">小知識:'+o.fun+'</span></div>';}
+    else{h+='<p style="font-size:24px;color:#8aa09a">？？？？</p><div class="small" style="margin-bottom:8px;letter-spacing:0;font-weight:400">還沒解開</div>';}
+  });
+  h+='</div><p class="small">千字文 '+n+' / 8 句 ・ 成語 '+m+' / '+idm.length+' ・ 找到銅錢 '+coinCount()+' / '+KTOTAL+'</p><div class="row" id="rw"></div>';
   showModal(h);$("rw").appendChild(closeBtn("關閉",hideModal));
 }
 $("dex").onclick=function(){if(!modalOpen){openDex();}};
@@ -839,7 +1222,7 @@ $("dex").onclick=function(){if(!modalOpen){openDex();}};
 /* ---------- 門 ---------- */
 function openDoor(){
   var r=S.room,rm=ROOMS[r];
-  if(r===3){toast("這裡是寶庫最深處,去打開<b>大寶箱</b>!",3000);return;}
+  if(!rm.code){toast("去打開<b>大寶箱</b>!",3000);return;}
   if(S["open"+r]){return goNext();}
   var os=roomObjs(r),got=os.filter(function(o){return L(o.id).ok;}).length;
   if(got<os.length){toast("門鎖上有四個空格。還有 <b>"+(os.length-got)+"</b> 個字靈沒找到!",3400);return;}
@@ -866,22 +1249,29 @@ function openDoor(){
   $("go").onclick=submit;enterKey(input,submit);input.focus();
 }
 function goNext(){
-  fade(function(){S.room=Math.min(3,S.room+1);save();loadRoom(S.room);});
+  fade(function(){S.room=Math.min(LAST,S.room+1);save();loadRoom(S.room);});
 }
 function fade(cb){var f=$("fade");f.classList.add("on");setTimeout(function(){cb();setTimeout(function(){f.classList.remove("on");},250);},650);}
 
 /* ---------- 大寶箱 / 結局 ---------- */
 function openChest(){
-  if(!roomDone(3)){var left=roomObjs(3).filter(function(o){return !L(o.id).ok;}).length;toast("寶箱的鎖還有 <b>"+left+"</b> 個機關沒解開!",3200);return;}
-  if(!chestOpen){
-    chestOpen=true;S.won=true;save();beep("ok");
+  var r=S.room;
+  if(!roomDone(r)){var left=roomObjs(r).filter(function(o){return !L(o.id).ok;}).length;toast("寶箱的鎖還有 <b>"+left+"</b> 個機關沒解開!",3200);return;}
+  var fresh=!chestOpen;
+  if(fresh){
+    chestOpen=true;S["chest"+r]=true;if(r===LAST){S.won=true;}save();beep("ok");
     anim.push({t:0,run:function(dt){this.t+=dt;var k=Math.min(1,this.t/1.4);chestLid.rotation.x=-1.3*k;return k>=1;}});
     var l=new T.PointLight(0xffe080,2.5,9);l.position.set(0,1.6,-3.6);group.add(l);flickers.push({l:l,b:2.5,p:1});
   }
-  setTimeout(victory,900);
+  setTimeout(r===LAST?victory:passage,fresh?900:50);
+}
+function passage(){
+  showModal('<div class="center"><div class="stamp">密道開啟</div></div><h2 class="t center" style="margin-top:16px">大寶箱打開了!</h2><p class="ask center">箱子裡沒有金銀財寶,只有一把鑰匙和一張舊地圖。<br>地圖上寫著:「<b>千字寶庫的地下,還有一座成語村。</b>」<br>寶箱底部,出現了一條向下的密道。</p><div class="row" style="justify-content:center" id="rw"></div>');
+  $("rw").appendChild(closeBtn("走進密道 →",function(){hideModal();goNext();}));
+  var b=document.createElement("button");b.type="button";b.className="btn alt";b.textContent="再逛逛";b.onclick=hideModal;$("rw").appendChild(b);
 }
 function victory(){
-  showModal('<div class="center"><div class="stamp">寶庫守護者</div></div><h2 class="t center" style="margin-top:16px">通關!</h2><p class="ask center">大寶箱打開了,八句千字文的字靈全部自由!<br>一共收集了 <b>'+S.coins+'</b> 枚銅錢。</p><div class="row" style="justify-content:center" id="rw"></div><div class="fb good center" id="fb"></div>');
+  showModal('<div class="center"><div class="stamp">寶庫守護者</div></div><h2 class="t center" style="margin-top:16px">通關!</h2><p class="ask center">寶庫裡所有的字靈都自由了!<br>千字文、成語、修辭、字詞,你全部都解開了。<br>一共收集了 <b>'+S.coins+'</b> 枚銅錢。</p><div class="row" style="justify-content:center" id="rw"></div><div class="fb good center" id="fb"></div>');
   var b=document.createElement("button");b.type="button";b.className="btn gold";b.textContent="複製上課紀錄";b.onclick=function(){copyReport($("fb"));};$("rw").appendChild(b);
   $("rw").appendChild(closeBtn("繼續逛逛",hideModal));
 }
@@ -889,46 +1279,61 @@ function victory(){
 /* ---------- 紀錄 ---------- */
 function sh(t,n){t=String(t||"");return t.length>n?t.slice(0,n)+"…":t;}
 function report(){
-  var d=new Date(),out=["【軒瑀 國文 本次實際完成｜"+(d.getMonth()+1)+"/"+d.getDate()+"】","千字文密室逃脫(3D 密室,第三關、第四關、終關)"];
+  var d=new Date(),out=["【軒瑀 國文 本次實際完成｜"+(d.getMonth()+1)+"/"+d.getDate()+"】","千字文密室逃脫(3D 密室,共 "+ROOMS.length+" 間房:千字文、對仗、成語、修辭、字詞)"];
   var undone=[];
-  for(var r=0;r<3;r++){
+  for(var r=0;r<ROOMS.length;r++){
     out.push("");out.push(ROOMS[r].name+"("+ROOMS[r].sub+")");
     roomObjs(r).forEach(function(o){
       var lg=S.log[o.id];
       if(lg&&lg.ok){
-        var line="・"+o.name+"("+o.kind+"):"+o.key+(lg.wrong?" 錯"+lg.wrong+"次":" 一次過")+(o.rad?(lg.radOk?";部首✓":";部首未答對"):"");
-        if(o.explain&&lg.text){line+=";說「"+LINES[o.line].t+"」:「"+sh(lg.text,26)+"」";}
+        var line;
+        if(o.flow){
+          line="・"+o.name+":"+o.key+(lg.wrong?" 錯"+lg.wrong+"次":" 一次過");
+          var tx=(lg.texts||[]).filter(Boolean);
+          if(tx.length){line+=";寫:"+tx.map(function(t){return "「"+sh(t,o.id==="g4"?70:22)+"」";}).join("");}
+        }else if(o.kind==="創作"){line="・"+o.name+":「"+(lg.text||"")+"」";}
+        else if(o.kind==="大會考"){line="・"+o.name+":大會考 "+(lg.score||0)+" / "+QUIZ.length+" 題一次答對";}
+        else if(r===3){line="・"+o.name+":"+o.show.replace("＿",o.key);}
+        else{
+          line="・"+o.name+"("+o.kind+"):"+o.key+(lg.wrong?" 錯"+lg.wrong+"次":" 一次過")+(o.rad?(lg.radOk?";部首✓":";部首未答對"):"");
+          if(o.explain&&lg.text){line+=";說「"+LINES[o.line].t+"」:「"+sh(lg.text,26)+"」";}
+        }
+        if(lg.skipped){line+=";老師略過";}
         out.push(line);
       }else{out.push("・"+o.name+":未完成");undone.push(o.name);}
     });
-    out.push("・大門密碼:"+(S["open"+r]?"✓":"未開"));
+    if(ROOMS[r].code){out.push("・大門密碼:"+(S["open"+r]?"✓":"未開"));}
+    if(r===3||r===LAST){out.push("・大寶箱:"+(chestSaved(r)?"✓":"未開"));}
   }
-  out.push("");out.push("終關・對仗寶庫");
-  roomObjs(3).forEach(function(o){
-    var lg=S.log[o.id];
-    if(lg&&lg.ok){out.push("・"+o.name+":"+(o.kind==="創作"?"「"+(lg.text||"")+"」":o.kind==="大會考"?"大會考 "+(lg.score||0)+" / "+QUIZ.length+" 題一次答對":o.show.replace("＿",o.key)));}
-    else{out.push("・"+o.name+":未完成");undone.push(o.name);}
-  });
-  out.push("・大寶箱:"+(S.won?"✓ 通關":"未開"));
-  out.push("");out.push("尋寶銅錢找到 "+coinCount()+" / 12");out.push("銅錢:"+S.coins);
+  out.push("");out.push("尋寶銅錢找到 "+coinCount()+" / "+KTOTAL);out.push("銅錢:"+S.coins);
   if(undone.length){out.push("未完成(不算已教):"+undone.join("、"));}
   out.push("※只記錄實際完成的部分");
-  return out.join("\n").slice(0,1900);
+  return out.join("\n");
 }
+function chunks(txt){
+  var lines=txt.split("\n"),out=[],cur="";
+  lines.forEach(function(l){if(cur&&(cur+"\n"+l).length>1850){out.push(cur);cur=l;}else{cur=cur?cur+"\n"+l:l;}});
+  if(cur){out.push(cur);}return out;
+}
+var copyIdx=0;
 function copyReport(fb){
-  var txt=report();
-  var ok=function(){if(fb){fb.className="fb good";fb.textContent="已複製,貼到 Discord 就可以了";}};
-  var fail=function(){if(fb){fb.className="fb";fb.textContent="複製失敗,請到「老師」面板手動複製";}showTeacher(txt);};
+  var cs=chunks(report()),i=copyIdx%cs.length,txt=cs[i];
+  if(cs.length>1&&i>0){txt="【續 "+(i+1)+" / "+cs.length+"】\n"+txt;}
+  copyIdx++;
+  var msg=cs.length>1?"已複製第 "+(i+1)+" / "+cs.length+" 段,貼到 Discord 後,再按一次複製下一段":"已複製,貼到 Discord 就可以了";
+  var ok=function(){if(fb){fb.className="fb good";fb.textContent=msg;}};
+  var fail=function(){if(fb){fb.className="fb";fb.textContent="複製失敗,請到「老師」面板手動複製";}showTeacher(report());};
   try{navigator.clipboard.writeText(txt).then(ok,fail);}catch(e){fail();}
 }
 function showTeacher(txt){
   var was=modalOpen;
-  showModal('<div class="teach"><div class="tag">老師工具</div><div class="row" id="tr"></div><textarea id="rep" readonly></textarea><div class="row" id="rw"></div></div>');
+  showModal('<div class="teach"><div class="tag">老師工具</div><div class="row" id="tr"></div><textarea id="rep" readonly></textarea><div class="fb" id="tfb"></div><div class="row" id="rw"></div></div>');
   function btn(l,fn,cls){var b=document.createElement("button");b.type="button";b.className="btn "+(cls||"alt");b.textContent=l;b.onclick=fn;$("tr").appendChild(b);return b;}
   btn("本房全部通過",function(){roomObjs(S.room).forEach(function(o){var lg=L(o.id);if(!lg.ok){lg.ok=true;lg.skipped=true;setMarkerDone(o.id);}});save();hudSlots();hideModal();toast("本房機關已全部解開",2000);});
-  btn("直接開門去下一房",function(){if(S.room<3){S["open"+S.room]=true;save();hideModal();goNext();}});
+  btn("直接開門去下一房",function(){if(S.room<LAST){S["open"+S.room]=true;S["chest"+S.room]=true;save();hideModal();goNext();}});
+  ROOMS.forEach(function(rm,ri){btn("第 "+(ri+1)+" 房",function(){hideModal();fade(function(){S.room=ri;save();loadRoom(ri);});});});
   btn("回上一房",function(){if(S.room>0){hideModal();fade(function(){S.room--;save();loadRoom(S.room);});}});
-  btn("複製上課紀錄",function(){var t=$("rep");t.value=report();t.select();try{navigator.clipboard.writeText(t.value);}catch(e){}});
+  btn("複製上課紀錄",function(){$("rep").value=report();copyReport($("tfb"));});
   var rs=false,rb=btn("重新開始",function(){if(!rs){rs=true;rb.textContent="再按一次確定";setTimeout(function(){rs=false;rb.textContent="重新開始";},3000);return;}S={room:0,coins:0,log:{},muted:S.muted};save();hideModal();fade(function(){loadRoom(0);});});
   $("rep").value=txt||report();
   $("rw").appendChild(closeBtn("關閉",hideModal));
